@@ -90,7 +90,7 @@ void w_create_dir(char* path, int ctime, int wtime)
 			exit(1);
 		}
 	}
-/*
+/*  Commented out because did not work and is not much necessary for directories
 	HANDLE file = CreateFile(path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL );
 	if (file == INVALID_HANDLE_VALUE) {
 		printf("\nERROR opening directory %s for setting creation time\n", path);

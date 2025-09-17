@@ -1,5 +1,9 @@
-﻿// xdu.cpp : Defines the entry point for the application.
-//
+﻿/*
+* XDU - XD Utility (c) KRONOS 
+* 
+* Purpose: Basic access to Kronos vistual XD volume from Windows host
+* 
+*/
 
 #include "stdio.h"
 #include "xduDisk.h"
@@ -9,10 +13,7 @@
 #include <stdlib.h>
 #include "xduTime.h"
 
-void pindent(int level)
-{
-	while (level-- > 0) printf("  ");
-}
+void pindent(int level)   { while (level-- > 0) printf("  "); }
 
 void pfilename(char* fn, int dir)
 {
@@ -155,9 +156,10 @@ void help()
 	printf("xdu -- XD virtual vopume utility (c) 2025 Kronos\n");
 	printf("usage:\n");
 	printf("  xdu XDFile\n");
-	printf("     Prnts XDfile volume file tree, like \"ls //*\"\n");
+	printf("     Prnts Kronos volume file tree, like as \"ls //*\"\n");
 	printf("  xdu XDFile get\n");
-	printf("    Copy all file tree to ./TMP/ directory\n\n");
+	printf("    Copy all files and directories from Kronos volume to ./TMP/ directory\n");
+	printf("    NOTE: *.d and *.m files are converted to UTF-8\n\n");
 }
 
 int main(int argc, char** argv)
