@@ -1,5 +1,6 @@
-IMPLEMENTATION MODULE coolSystem; (* Leo 05-Jun-88. (c) KRONOS *)
-                                  (* Ned 04-Mar-90. (c) KRONOS *)
+IMPLEMENTATION MODULE coolSystem; (* Leo  05-Jun-88. (c) KRONOS *)
+                                  (* Ned  04-Mar-90. (c) KRONOS *)
+                                  (* Hady 15-Sep-25. (c) KRONOS *)
 
 IMPORT  sys: SYSTEM;
 IMPORT  str: Strings;
@@ -26,7 +27,7 @@ PROCEDURE app_time(VAR s: ARRAY OF CHAR; time: INTEGER);
   VAR y,m,d,h,mi,sc: INTEGER;
 BEGIN
   tm.unpack(time,y,m,d,h,mi,sc);
-  str.append(s,'%$2d-%$2d-%$2d  %$2d:%$2d.%$2d',d,m,y DIV 100,h,mi,sc);
+  str.append(s,'%$2d-%$2d-%$2d  %$2d:%$2d.%$2d',d,m,y MOD 100,h,mi,sc);
 END app_time;
 
 PROCEDURE append(VAR s: ARRAY OF CHAR; VAL f: ARRAY OF CHAR; SEQ args: sys.WORD);

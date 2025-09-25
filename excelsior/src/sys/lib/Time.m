@@ -1,5 +1,6 @@
 IMPLEMENTATION MODULE Time; (* Leo  02-Nov-86. (c) KRONOS *)
                             (* Hady 24-Jul-89. (c) KRONOS *)
+                            (* Hady 15-Sep-25. (c) KRONOS *)
 
 IMPORT os: osKernel;
 
@@ -63,43 +64,32 @@ END delay;
 
 ----------------------------------------------------------------
 
-CONST FIRST_YEAR = 1986;  LAST_YEAR = FIRST_YEAR+31;
-      -- NOTE: при смене константы FIRST_YEAR должны быть пересчитаны
-      --       jf0, vis_add, VIS, shift !!!
+CONST FIRST_YEAR = 1986;
+      LAST_YEAR  = 2053; -- INTEGER of the system time will overflow in 2054
+      -- NOTE: при смене константы FIRST_YEAR должна быть пересчитана jf0
 
 CONST
   add     = ARRAY OF INTEGER {0,1,-1,0,0,1,1,2,3,3,4,4};
-  vis_add = ARRAY OF INTEGER -- сколько прошло ПОЛНЫХ високосных
-                                 -- лет с FIRST_YEAR года
+  jf0 = 1985*365 + (1985 DIV 4) - (1985 DIV 100) + (1985 DIV 400) + 1;
 
-          (********  0  1  2  3  4  5  6  7  8  9    ********)
-          (* 1980 *)                 { 0, 0, 0, 1,  (* 1989 *)
-          (* 1990 *) 1, 1, 1, 2, 2, 2, 2, 3, 3, 3,  (* 1999 *)
-          (* 2000 *) 3, 4, 4, 4, 4, 5, 5, 5, 5, 6,  (* 2009 *)
-          (* 2010 *) 6, 6, 6, 7, 7, 7, 7, 8, 8, 8}; (* 2019 *)
-          (********  0  1  2  3  4  5  6  7  8  9    ********)
-
-  VIS = BITSET(44444444h); -- для FIRST_YEAR=1986,1990,1994 и т.д.
-     -- BITSET(11111111h); -- для FIRST_YEAR=1988 и всех високосного
-     -- BITSET(22222222h); -- для FIRST_YEAR, следующего за високосным
-     -- BITSET(88888888h); -- для FIRST_YEAR=1991,1995,1999 и т.д.
-
-  jf0 = FIRST_YEAR * 365 + 1; -- jf(FIRST_YEAR,1,1);
-
-  shift = 03; -- номер дня недели 1-Jan-FIRST_YEAR минус 1;
+  y4days   = 365*4 + 1;
+  y100days = y4days*25  - 1;
+  y400days = y100days*4 + 1;
 
 PROCEDURE long?(y: INTEGER): BOOLEAN;
 BEGIN
-  ASSERT((y-FIRST_YEAR) IN {0..31});
-  RETURN y-FIRST_YEAR IN VIS
+  RETURN (y MOD 4 = 0) & ((y MOD 100 # 0) OR (y MOD 400 = 0))
 END long?;
 
 PROCEDURE jf(y,m,d: INTEGER): INTEGER;
-  VAR tog,tog1: INTEGER;
+  VAR day,tog,tog1: INTEGER;
 BEGIN
-  IF y<FIRST_YEAR THEN tog:=0 ELSE tog:=vis_add[y-FIRST_YEAR] END;
-  tog1:=ORD(y-FIRST_YEAR IN VIS)*ORD(m>2);
-  RETURN  y*365 + tog + (m-1)*30 + add[m-1] + tog1 + d;
+  tog1 := ORD(long?(y)) * ORD(m>2);
+  DEC(y);
+  day := y DIV 400 * y400days;        y := y MOD 400;
+  day := day + y DIV 100 * y100days;  y := y MOD 100;
+  day := day + y DIV 004 * y4days;    y := y MOD 004;
+  RETURN day + y*365 + (m-1)*30 + add[m-1] + tog1 + d;
 END jf;
 
 PROCEDURE mf(j: INTEGER; VAR y,m,d: INTEGER);
@@ -145,7 +135,7 @@ BEGIN
 END unpack;
 
 PROCEDURE day(t: INTEGER): INTEGER;
-BEGIN RETURN (t DIV (60*60*24) + jf0 + shift) MOD 7 + 1 END day;
+BEGIN RETURN (t DIV (60*60*24) + jf0 - 1) MOD 7 + 1 END day;
 
 PROCEDURE scan_date(VAR t: INTEGER; VAL str: ARRAY OF CHAR; night: BOOLEAN);
 
