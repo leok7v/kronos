@@ -196,7 +196,7 @@ static int allocInode()
 // returns allocated inode index or -1
 {
 	int no = 0, high = (disk->i_no + 31) / 32;
-	while (no < high && disk->iset[no] == 0) no++; // skip empty words
+	while ((no < high) && (disk->iset[no] == 0)) no++; // skip empty 32-bit words
 	no = no * 32;
 	while (no < disk->i_no && ISSET(disk->iset, no) == 0) no++;
 	if (no < disk->i_no) {
@@ -382,8 +382,8 @@ void xdir_open(int ino, xDir dir)
 int xdir_find(xDir dir, char* name)
 // returns dNode index or -1
 {
-	int x = 0, nodes = dir->dnodes_no;
-	while (nodes--) {
+	int x = 0;
+	while (x < dir->dnodes_no) {
 		dNode dnode = &(dir->dnodes[x]);
 		if ((dnode->kind & d_del) == 0 && strncmp(name, dnode->name, 32) == 0) {
 			return x;
@@ -433,10 +433,10 @@ void xfile_link(xDir dir, int no, char* name, int kind)
 	flushInode(no);
 	if (fileToDelete >= 0) {
 		iNode inode = &(disk->inodes[fileToDelete]);
-		if (inode->links > 1) {
-			inode->links--;
-			flushInode(fileToDelete);
-		} else {
+		inode->links--;
+		assert(inode->links >= 0);
+		flushInode(fileToDelete);
+		if (inode->links == 0) {
 			int blocks_no = (inode->eof + 4095) / 4096;
 			if (blocks_no >= 1024) { 			
 				fatal("Existing file %s is too long to be deleted. Consider removing by OS Excelsior.\n", name);
@@ -503,7 +503,7 @@ iNode get_inode(int no)
 }
 
 
-int isEmpty(WBLOCK blk)
+static int isBlockEmpty(WBLOCK blk)
 {
 	int i = 1024;
 	while (i--)
@@ -515,13 +515,14 @@ int isEmpty(WBLOCK blk)
 int zero_free_blocks()
 {
 	assert(disk != null);
-	int i = disk->b_no, total = 0;
-	while (i--) {
-		if (ISSET(disk->bset,i) && !isEmpty(disk->iblocks[i])) {
+	int i = 0, total = 0;
+	while (i < disk->b_no) {
+		if (ISSET(disk->bset,i) && !isBlockEmpty(disk->iblocks[i])) {
 			total++;
 			memset(disk->cblocks[i], 0, 4096);
 			flushBlock(i);
 		}
+		i++;
 	}
 	printf("%d\n", total);
 	return total;
