@@ -5,15 +5,36 @@
 * 
 */
 
-#include <stdio.h>
 #include "xduDisk.h"
 #include "xduWIO.h"
+#include "xduTime.h"
+#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
-#include "xduTime.h"
 
-extern void fatal(char* fmt, ...);
+static void help()
+{
+	fprintf(stderr, "xdu -- XD virtual volume utility (c) 2025 Kronos\n");
+	fprintf(stderr, "usage:\n");
+	fprintf(stderr, "  xdu XDFile\n");
+	fprintf(stderr, "     Prnts Kronos volume file tree, like as \"ls //*\"\n");
+	fprintf(stderr, "     NOTE: file times are printed in form of Windows PowerShell\n");
+	fprintf(stderr, "     commands, that set original Kronos times for the given file\n");
+	fprintf(stderr, "  xdu XDFile get\n");
+	fprintf(stderr, "    Copy all files and directories from Kronos volume to ./TMP/ directory\n");
+	fprintf(stderr, "  xdu XDFile put fileName\n");
+	fprintf(stderr, "    Copies given file to /host-exchange folder of the XD volume.\n");
+	fprintf(stderr, "  xdu XDFile zfb\n");
+	fprintf(stderr, "    Fills all free blocks on XD volume by zeroes\n");
+	fprintf(stderr, "    to make its ZIP archive more compact\n");
+	fprintf(stderr, "  NOTE: *.d, *.m, *.@, *.sh, *.txt and *.doc files are converted\n");
+	fprintf(stderr, "        between UTF-8 and KOI8-R for host and Kronos respectively\n");
+	fprintf(stderr, "\n");
+	exit(0);
+}
+
+extern void fatal(char* fmt, ...);  // defined in xduDisk.c
 
 static void pindent(int level)   
 { 
@@ -84,22 +105,24 @@ static void copy_dir(int ino, char* fname, char* path)
 	w_create_dir(fullname, dir.file.inode->cTime, dir.file.inode->wTime);
 
 	printf("DIR %s\n", fullname);
-	dNode dnode = dir.dnodes;
-	int i = dir.dnodes_no;
-	while (i--) {
+	int i = 0;
+	while (i < dir.dnodes_no) {
+		dNode dnode = &(dir.dnodes[i]);
 		if ((dnode->kind & d_del) == 0) {
 			char fname[40];
 			strncpy(fname, dnode->name, 32);
 			fname[32] = 0;
 
-			if ((dnode->kind & d_dir) && (strcmp(fname,"..") != 0)) {
+			if ((dnode->kind & d_dir) && (strcmp(fname, "..") != 0)) {
 				copy_dir(dnode->inode, fname, fullname);
-			} else if (dnode->kind & d_file) {
+			}
+			else if (dnode->kind & d_file) {
 				copy_file(dnode->inode, fname, fullname);
 			}
 		}
-		dnode++;
+		i++;
 	}
+
 	xdir_close(&dir);
 	printf("DIR %s -- DONE\n", fullname);
 }
@@ -110,9 +133,9 @@ static void list_dir(int ino, int level)
 	xdir_open(ino, &dir);
 
 	/* print subdirectories */
-	int i = dir.dnodes_no;
-	dNode dnode = dir.dnodes;
-	while (i--) {
+	int i = 0;
+	while (i < dir.dnodes_no) {
+		dNode dnode = &(dir.dnodes[i]);
 		if ((dnode->kind & d_del) == 0) {
 			if (dnode->kind & d_dir) {
 				iNode inode = get_inode(dnode->inode);
@@ -125,13 +148,13 @@ static void list_dir(int ino, int level)
 				printf("\n");
 			}
 		}
-		dnode++;
+		i++;
 	}
 
 	/* print files */
-	i = dir.dnodes_no;
-	dnode = dir.dnodes;
-	while (i--) {
+	i = 0;
+	while (i < dir.dnodes_no) {
+		dNode dnode = &(dir.dnodes[i]);
 		if ((dnode->kind & d_del) == 0) {
 			if (dnode->kind & d_file) {
 				iNode inode = get_inode(dnode->inode);
@@ -141,7 +164,7 @@ static void list_dir(int ino, int level)
 				printf("%-16s",fname);
 				printf(" %7d bytes\n", inode->eof);
 
-				/* file times are printed in form of Windows PowerShell commands that set times for the given file */
+				/* file times are printed in form of Windows PowerShell commands which set times for the given file */
 				pindent(level+1);
 				printf("(Get-Item %s).creationtime=$(Get-Date \"", fname);
 				pKronosTime(inode->cTime);
@@ -153,13 +176,13 @@ static void list_dir(int ino, int level)
 				printf("\")\n");
 			}
 		}
-		dnode++;
+		i++;
 	}
 
 	/* iterate subdirectories */
-	i = dir.dnodes_no;
-	dnode = dir.dnodes;
-	while (i--) {
+	i = 0;
+	while (i < dir.dnodes_no) {
+		dNode dnode = &(dir.dnodes[i]);
 		if ((dnode->kind & d_del) == 0) {
 			if ((dnode->kind & d_dir) && (strncmp("..", dnode->name, 2) != 0)) {
 				pindent(level);
@@ -168,7 +191,7 @@ static void list_dir(int ino, int level)
 				list_dir(dnode->inode, level + 1);
 			}
 		}
-		dnode++;
+		i++;
 	}
 
 	xdir_close(&dir);
@@ -188,12 +211,11 @@ static void download()
 
 static char* get_last_fname(char* path)
 {
-	int len = strlen(path);
-	char* s = path + len;
-	while (len) {
-		char c = *(--s);
-		if (c == '\\' || c == '/') return s+1;
-		len--;
+	int i = strlen(path);
+	while (--i >= 0) {
+		if (path[i] == '\\' || path[i] == '/') {
+			return path + i + 1;
+		}
 	}
 	return path;
 }
@@ -229,26 +251,6 @@ static void upload(int argc, char** argv)
 	}
 
 	xdir_close(&upload);
-}
-
-static void help()
-{
-	fprintf(stderr, "xdu -- XD virtual volume utility (c) 2025 Kronos\n");
-	fprintf(stderr, "usage:\n");
-	fprintf(stderr, "  xdu XDFile\n");
-	fprintf(stderr, "     Prnts Kronos volume file tree, like as \"ls //*\"\n");
-	fprintf(stderr, "     NOTE: file times are printed in form of Windows PowerShell\n");
-	fprintf(stderr, "     commands, that set original Kronos times for the given file\n");
-	fprintf(stderr, "  xdu XDFile get\n");
-	fprintf(stderr, "    Copy all files and directories from Kronos volume to ./TMP/ directory\n");
-	fprintf(stderr, "    NOTE: *.d and *.m files are converted to UTF-8\n");
-	fprintf(stderr, "  xdu XDFile put fileName\n");
-	fprintf(stderr, "    Copies given file to /host-exchange folder of the XD volume.\n");
-	fprintf(stderr, "    NOTE: *.d and *.m files are converted from UTF-8 to KOI8-R\n");
-	fprintf(stderr, "  xdu XDFile zfb\n");
-	fprintf(stderr, "    Fills all free blocks on XD volume by zeroes\n");
-	fprintf(stderr, "    to make its ZIP archive more compact\n\n");
-	exit(0);
 }
 
 int main(int argc, char** argv)

@@ -3,7 +3,7 @@
  */
 
 /*
-* disk layout:
+* Kronos disk layout:
 * block 0 -- cold booter
 * block 1 -- superblock (label, blocks and inodes free/busy maps)
 * blocks 2..(inodes_no + 63) DIV 64 + 2 - inodes table
@@ -12,17 +12,17 @@
 * . . .
 */
 
+#include "xduDisk.h"
+#include "xduTime.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <stdint.h>
-#include "xduDisk.h"
-#include "xduTime.h"
+#include <stdbool.h>
 
-typedef int  WBLOCK[1024];
+typedef int32_t  WBLOCK[1024];
 typedef char CBLOCK[4096];
 typedef struct i_node IBLOCK[4096 / 64];
 
@@ -35,11 +35,11 @@ struct x_disk {
 	};
 	iNode inodes;
 	char label[12];
-	int i_no;
-	int b_no;
-	int c_time;
-	int* bset;
-	int* iset;
+	int32_t i_no;
+	int32_t b_no;
+	int32_t c_time;
+	int32_t* bset;
+	int32_t* iset;
 };
 
 /* mounted XD volume */
@@ -83,20 +83,14 @@ static void flushInode(int no)
 	}
 }
 
-static void dnode2cash(char* to, char* from)
-{
-	memcpy(to, from, 64);
-}
-
 static void flushDnode(xDir dir, int index)
-// copies dNode to a global cash and then flushes to disk
+// copies dNode to the global cash and then flushes it to the disk
 {
 	assert(index >= 0 && index < dir->dnodes_no);
 
 	int block_no = index / 64;
 	char* block = (char *)(disk->cblocks + dir->file.blocks[block_no]);
 	memcpy(block + 64 * (index % 64), dir->dnodes + index, 64);
-//	dnode2cash(block + 64 * (index % 64), dir->dnodes + index);
 	flushBlock(dir->file.blocks[block_no]);
 }
 
@@ -173,7 +167,7 @@ void unmount()
 	}
 }
 
-static int allocBlocks(int no, int* buf)
+static bool allocBlocks(int no, int* buf)
 // returns true if not enough free space
 {
 	int b = 0, high = (disk->b_no + 31) / 32;
@@ -196,7 +190,7 @@ static int allocInode()
 // returns allocated inode index or -1
 {
 	int no = 0, high = (disk->i_no + 31) / 32;
-	while (no < high && disk->iset[no] == 0) no++; // skip empty words
+	while ((no < high) && (disk->iset[no] == 0)) no++; // skip empty 32-bit words
 	no = no * 32;
 	while (no < disk->i_no && ISSET(disk->iset, no) == 0) no++;
 	if (no < disk->i_no) {
@@ -382,8 +376,8 @@ void xdir_open(int ino, xDir dir)
 int xdir_find(xDir dir, char* name)
 // returns dNode index or -1
 {
-	int x = 0, nodes = dir->dnodes_no;
-	while (nodes--) {
+	int x = 0;
+	while (x < dir->dnodes_no) {
 		dNode dnode = &(dir->dnodes[x]);
 		if ((dnode->kind & d_del) == 0 && strncmp(name, dnode->name, 32) == 0) {
 			return x;
@@ -402,13 +396,11 @@ static int allocDnode(xDir dir)
 			memset(&(dir->dnodes[x]), 0, 64);
 			return x;
 		}
-		// TODO: free dnodes seems to be not marked by d_del
 		x++;
 	}
 	xfile_extend(&dir->file, dir->file.inode->eof + 64);
 	memset(&(dir->dnodes[dir->dnodes_no]), 0, 64);
-	return dir->dnodes_no++;
-	
+	return dir->dnodes_no++;	
 }
 
 void xfile_link(xDir dir, int no, char* name, int kind)
@@ -433,10 +425,10 @@ void xfile_link(xDir dir, int no, char* name, int kind)
 	flushInode(no);
 	if (fileToDelete >= 0) {
 		iNode inode = &(disk->inodes[fileToDelete]);
-		if (inode->links > 1) {
-			inode->links--;
-			flushInode(fileToDelete);
-		} else {
+		inode->links--;
+		assert(inode->links >= 0);
+		flushInode(fileToDelete);
+		if (inode->links == 0) {
 			int blocks_no = (inode->eof + 4095) / 4096;
 			if (blocks_no >= 1024) { 			
 				fatal("Existing file %s is too long to be deleted. Consider removing by OS Excelsior.\n", name);
@@ -503,25 +495,26 @@ iNode get_inode(int no)
 }
 
 
-int isEmpty(WBLOCK blk)
+static bool isBlockEmpty(WBLOCK blk)
 {
 	int i = 1024;
 	while (i--)
 		if (*(blk++)) 
-			return 0;
-	return 1;
+			return false;
+	return true;
 }
 
 int zero_free_blocks()
 {
 	assert(disk != null);
-	int i = disk->b_no, total = 0;
-	while (i--) {
-		if (ISSET(disk->bset,i) && !isEmpty(disk->iblocks[i])) {
+	int i = 0, total = 0;
+	while (i < disk->b_no) {
+		if (ISSET(disk->bset,i) && !isBlockEmpty(disk->iblocks[i])) {
 			total++;
 			memset(disk->cblocks[i], 0, 4096);
 			flushBlock(i);
 		}
+		i++;
 	}
 	printf("%d\n", total);
 	return total;
