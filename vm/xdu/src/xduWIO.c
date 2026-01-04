@@ -1,11 +1,16 @@
+/*
+* XDU -- Windows files IO
+*/
+
+#include "xduWIO.h"
+#include "xduTime.h"
 #include <windows.h>
 #include <winbase.h>
 #include <stdio.h>
 #include <assert.h>
-#include "xduWIO.h"
-#include "xduTime.h"
+#include <stdbool.h>
   
-extern void fatal(char* fmt, ...);
+extern void fatal(char* fmt, ...);  // defined in xduDisk.c
 
 static void set_time_attrs(HANDLE file, int created, int modified, char* fname)
 {
@@ -31,18 +36,18 @@ static int fileTimeToKronos(FILETIME* ft)
 	return pack_kronos_time(wt.wYear, wt.wMonth, wt.wDay, wt.wHour, wt.wMinute, wt.wSecond);
 }
 
-static int get_time_attrs(HANDLE file, int* t_created, int* t_modified)
+static bool get_time_attrs(HANDLE file, int* t_created, int* t_modified)
 {
 	FILETIME ct, mt;
 	if (!GetFileTime(file, &ct, NULL, &mt)) {
-		return 1;
+		return false;
 	}
 	*t_created = fileTimeToKronos(&ct);
 	*t_modified = fileTimeToKronos(&mt);
-	return 0;
+	return true;
 }
 
-static int isTextExt(char* fname)
+static bool isTextExt(char* fname)
 {
 	int len = strlen(fname) - 1;
 	while (len >= 0 && fname[len] != '.') len--;
@@ -54,7 +59,7 @@ static int isTextExt(char* fname)
 			(strcmp(ext, ".@") == 0) ||
 			(strcmp(ext, ".sh") == 0);
 	}
-	return 0;
+	return false;
 }
 
 #define RS (0x1e)
@@ -172,7 +177,7 @@ void w_create_dir(char* path, int ctime, int wtime)
 }
 
 void w_read_file(char* path, char** data, int* len, int* t_created, int* t_modified)
-// returned  in "data" buffer is malloc'ed, don't forget to free it after use
+// returned in "data" buffer is malloc'ed, don't forget to free it after use
 {
 	HANDLE file = CreateFile(path, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	if (file == INVALID_HANDLE_VALUE) {
@@ -196,7 +201,7 @@ void w_read_file(char* path, char** data, int* len, int* t_created, int* t_modif
 		*data = converted;
 	}
 	*len = src_len;
-	if (get_time_attrs(file, t_created, t_modified)) {
+	if (!get_time_attrs(file, t_created, t_modified)) {
 		fatal("Error getting timestamps of \"%s\"\n", path);
 	}
 	if (!CloseHandle(file)) {

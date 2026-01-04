@@ -5,15 +5,35 @@
 * 
 */
 
+#include "xduDisk.h"
+#include "xduWIO.h"
+#include "xduTime.h"
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
-#include "xduDisk.h"
-#include "xduWIO.h"
-#include "xduTime.h"
 
-extern void fatal(char* fmt, ...);
+static void help()
+{
+	fprintf(stderr, "xdu -- XD virtual volume utility (c) 2025 Kronos\n");
+	fprintf(stderr, "usage:\n");
+	fprintf(stderr, "  xdu XDFile\n");
+	fprintf(stderr, "     Prnts Kronos volume file tree, like as \"ls //*\"\n");
+	fprintf(stderr, "     NOTE: file times are printed in form of Windows PowerShell\n");
+	fprintf(stderr, "     commands, that set original Kronos times for the given file\n");
+	fprintf(stderr, "  xdu XDFile get\n");
+	fprintf(stderr, "    Copy all files and directories from Kronos volume to ./TMP/ directory\n");
+	fprintf(stderr, "    NOTE: *.d and *.m files are converted to UTF-8\n");
+	fprintf(stderr, "  xdu XDFile put fileName\n");
+	fprintf(stderr, "    Copies given file to /host-exchange folder of the XD volume.\n");
+	fprintf(stderr, "    NOTE: *.d and *.m files are converted from UTF-8 to KOI8-R\n");
+	fprintf(stderr, "  xdu XDFile zfb\n");
+	fprintf(stderr, "    Fills all free blocks on XD volume by zeroes\n");
+	fprintf(stderr, "    to make its ZIP archive more compact\n\n");
+	exit(0);
+}
+
+extern void fatal(char* fmt, ...);  // defined in xduDisk.c
 
 static void pindent(int level)   
 { 
@@ -143,7 +163,7 @@ static void list_dir(int ino, int level)
 				printf("%-16s",fname);
 				printf(" %7d bytes\n", inode->eof);
 
-				/* file times are printed in form of Windows PowerShell commands that set times for the given file */
+				/* file times are printed in form of Windows PowerShell commands which set times for the given file */
 				pindent(level+1);
 				printf("(Get-Item %s).creationtime=$(Get-Date \"", fname);
 				pKronosTime(inode->cTime);
@@ -230,26 +250,6 @@ static void upload(int argc, char** argv)
 	}
 
 	xdir_close(&upload);
-}
-
-static void help()
-{
-	fprintf(stderr, "xdu -- XD virtual volume utility (c) 2025 Kronos\n");
-	fprintf(stderr, "usage:\n");
-	fprintf(stderr, "  xdu XDFile\n");
-	fprintf(stderr, "     Prnts Kronos volume file tree, like as \"ls //*\"\n");
-	fprintf(stderr, "     NOTE: file times are printed in form of Windows PowerShell\n");
-	fprintf(stderr, "     commands, that set original Kronos times for the given file\n");
-	fprintf(stderr, "  xdu XDFile get\n");
-	fprintf(stderr, "    Copy all files and directories from Kronos volume to ./TMP/ directory\n");
-	fprintf(stderr, "    NOTE: *.d and *.m files are converted to UTF-8\n");
-	fprintf(stderr, "  xdu XDFile put fileName\n");
-	fprintf(stderr, "    Copies given file to /host-exchange folder of the XD volume.\n");
-	fprintf(stderr, "    NOTE: *.d and *.m files are converted from UTF-8 to KOI8-R\n");
-	fprintf(stderr, "  xdu XDFile zfb\n");
-	fprintf(stderr, "    Fills all free blocks on XD volume by zeroes\n");
-	fprintf(stderr, "    to make its ZIP archive more compact\n\n");
-	exit(0);
 }
 
 int main(int argc, char** argv)

@@ -2,9 +2,9 @@
 *	Windows - Excelsior time conversions 
 */
 
+#include "xduTime.h"
 #include <Windows.h>
 #include <stdio.h>
-#include "xduTime.h"
 
 static const unsigned long long eraDiff = (unsigned long long)140618 * 24 * 3600; // seconds between 01.01.1600 and 01.01.1986
 
@@ -51,17 +51,6 @@ int pack_kronos_time(int year, int month, int day, int hour, int min, int sec)
 	if (d < 0) return 0;
 	return d * 24 * 3600 + hour * 3600 + min * 60 + sec;
 }
-
-/*
-int windows_time_to_kronos(FILETIME* wtime)
-{
-	SYSTEMTIME wt;
-	if (!FileTimeToSystemTime(wtime, &wt)) {
-		return -1;
-	}
-	return pack_kronos_time(wt.wYear, wt.wMonth, wt.wDay, wt.wHour, wt.wMinute, wt.wSecond);
-}
-*/
 
 void unpack_kronos_time(int ktime, int* year, int* month, int* day, int* hour, int* minute, int* second)
 {

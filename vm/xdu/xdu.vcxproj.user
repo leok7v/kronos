@@ -4,6 +4,7 @@
     <LocalDebuggerCommandArguments>xd1.dsk put fsdb.m</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)/x64/Debug</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommandArgumentsHistory>xd1.dsk put fsdb.m|</LocalDebuggerCommandArgumentsHistory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LocalDebuggerCommandArguments>xd1.dsk put ttt</LocalDebuggerCommandArguments>
