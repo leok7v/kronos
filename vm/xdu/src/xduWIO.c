@@ -54,10 +54,12 @@ static bool isTextExt(char* fname)
 	if (len >= 0) {
 		char* ext = fname + len;
 		return 
-			(strcmp(ext, ".m") == 0) || 
-			(strcmp(ext, ".d") == 0) ||
-			(strcmp(ext, ".@") == 0) ||
-			(strcmp(ext, ".sh") == 0);
+			(strcmp(ext, ".m")   == 0) || 
+			(strcmp(ext, ".d")   == 0) ||
+			(strcmp(ext, ".@")   == 0) ||
+			(strcmp(ext, ".sh")  == 0) ||
+			(strcmp(ext, ".txt") == 0) ||
+			(strcmp(ext, ".doc") == 0);
 	}
 	return false;
 }

@@ -23,13 +23,14 @@ static void help()
 	fprintf(stderr, "     commands, that set original Kronos times for the given file\n");
 	fprintf(stderr, "  xdu XDFile get\n");
 	fprintf(stderr, "    Copy all files and directories from Kronos volume to ./TMP/ directory\n");
-	fprintf(stderr, "    NOTE: *.d and *.m files are converted to UTF-8\n");
 	fprintf(stderr, "  xdu XDFile put fileName\n");
 	fprintf(stderr, "    Copies given file to /host-exchange folder of the XD volume.\n");
-	fprintf(stderr, "    NOTE: *.d and *.m files are converted from UTF-8 to KOI8-R\n");
 	fprintf(stderr, "  xdu XDFile zfb\n");
 	fprintf(stderr, "    Fills all free blocks on XD volume by zeroes\n");
-	fprintf(stderr, "    to make its ZIP archive more compact\n\n");
+	fprintf(stderr, "    to make its ZIP archive more compact\n");
+	fprintf(stderr, "  NOTE: *.d, *.m, *.@, *.sh, *.txt and *.doc files are converted\n");
+	fprintf(stderr, "        between UTF-8 and KOI8-R for host and Kronos respectively\n");
+	fprintf(stderr, "\n");
 	exit(0);
 }
 
