@@ -1,11 +1,16 @@
+/*
+* XDU -- Windows files IO
+*/
+
 #include "xduWIO.h"
+#include "xduTime.h"
 #include <windows.h>
 #include <winbase.h>
-#include "stdio.h"
-#include "xduTime.h"
+#include <stdio.h>
 #include <assert.h>
+#include <stdbool.h>
   
-extern void fatal(char* fmt, ...);
+extern void fatal(char* fmt, ...);  // defined in xduDisk.c
 
 static void set_time_attrs(HANDLE file, int created, int modified, char* fname)
 {
@@ -22,55 +27,78 @@ static void set_time_attrs(HANDLE file, int created, int modified, char* fname)
 	}
 }
 
-static int get_time_attrs(HANDLE file, int* t_created, int* t_modified)
+static int fileTimeToKronos(FILETIME* ft)
+{
+	SYSTEMTIME wt;
+	if (!FileTimeToSystemTime(ft, &wt)) {
+		return -1;
+	}
+	return pack_kronos_time(wt.wYear, wt.wMonth, wt.wDay, wt.wHour, wt.wMinute, wt.wSecond);
+}
+
+static bool get_time_attrs(HANDLE file, int* t_created, int* t_modified)
 {
 	FILETIME ct, mt;
 	if (!GetFileTime(file, &ct, NULL, &mt)) {
-		return 1;
+		return false;
 	}
-	*t_created = windows_time_to_kronos(&ct);
-	*t_modified = windows_time_to_kronos(&mt);
-	return 0;
+	*t_created = fileTimeToKronos(&ct);
+	*t_modified = fileTimeToKronos(&mt);
+	return true;
 }
 
-int isText(char* fname)
+static bool isTextExt(char* fname)
 {
-	int len = strlen(fname);
-	char* c = fname + len;
-	do { len--; c--; } while (len && *c != '.');
-	return ((len != 0) && ((strcmp(c, ".m") == 0) || (strcmp(c, ".d") == 0)));
+	int len = strlen(fname) - 1;
+	while (len >= 0 && fname[len] != '.') len--;
+	if (len >= 0) {
+		char* ext = fname + len;
+		return 
+			(strcmp(ext, ".m")   == 0) || 
+			(strcmp(ext, ".d")   == 0) ||
+			(strcmp(ext, ".@")   == 0) ||
+			(strcmp(ext, ".sh")  == 0) ||
+			(strcmp(ext, ".txt") == 0) ||
+			(strcmp(ext, ".doc") == 0);
+	}
+	return false;
 }
 
 #define RS (0x1e)
 #define CR (0x0d)
 #define LF (0x0a)
 
-char* toUTF8(char *src, int *src_len)
+static char* toUTF8(char *src, int *src_len)
 {
-	int i = *src_len;
-	int lines = 0;
-	char* c = src;
-	while (i) {
-		if (*(c++) == RS) lines++;
-		i--;
+	int len = *src_len, lines = 0, i = 0;
+	while (i < len) {
+		if (src[i++] == RS) lines++;
 	}
-	char* str = malloc(*src_len + lines);
+	
+	char* str = malloc(len + lines);
 	assert(str != NULL);
-	c = src;
-	char* d = str;
-	i = *src_len;
-	while (i) {
-		if (*c == RS) { *(d++) = CR; *(d++) = LF; }
-		else *(d++) = *c;
-		c++; i--;
+
+	int o = 0;
+	i = 0;
+	while (i < len) {
+		if (src[i] == RS) {
+			str[o++] = CR;
+			str[o++] = LF;
+		}
+		else {
+			str[o++] = src[i];
+		}
+		i++;
 	}
 
-	int wchar_len = MultiByteToWideChar(20866, 0, str, (*src_len) + lines, NULL, 0);
+	int wchar_len = MultiByteToWideChar(20866, 0, str, len + lines, NULL, 0);
 	wchar_t* wideString = malloc(sizeof(wchar_t) * wchar_len);
-	MultiByteToWideChar(20866, 0, str, (*src_len) + lines, wideString, wchar_len);
+	assert(wideString != NULL);
+	MultiByteToWideChar(20866, 0, str, len + lines, wideString, wchar_len);
 
 	int utf_len = WideCharToMultiByte(CP_UTF8, 0, wideString, wchar_len, NULL, 0, NULL, NULL);
 	char* utf = malloc(utf_len + 1);
+	assert(utf != NULL);
 	WideCharToMultiByte(CP_UTF8, 0, wideString, wchar_len, utf, utf_len, NULL, NULL);
 	utf[utf_len] = 0;
 
@@ -80,7 +108,7 @@ char* toUTF8(char *src, int *src_len)
 	return utf;
 }
 
-char* fromUTF8(const char* src, int* src_len)
+static char* fromUTF8(const char* src, int* src_len)
 {
 	int wchar_len = MultiByteToWideChar(CP_UTF8, 0, src, (*src_len), NULL, 0);
 	wchar_t* wideString = malloc(sizeof(wchar_t) * wchar_len);
@@ -92,22 +120,23 @@ char* fromUTF8(const char* src, int* src_len)
 	WideCharToMultiByte(20866, 0, wideString, wchar_len, dkoi, dkoi_len, NULL, NULL);
 	free(wideString);
 
-	char *d = dkoi, *s = dkoi;
-	int i = dkoi_len, lines = 0;
-	while (i) {
-		char c = *s++;
-		if (c == CR) {
-			if ((i > 1) && (*s == LF)) {
-				*(d++) = RS; lines++;
-				i--; s++; 
+	int i = 0, o = 0, lines = 0; /* input, output positions and lines counter */
+	while (i < dkoi_len) {
+		if (dkoi[i] == CR) {
+			if ((i+1) < dkoi_len && dkoi[i+1] == LF) {
+				dkoi[o++] = RS;
+				i++; lines++;
 			} else {
-				*d++ = CR;
+				dkoi[o++] = CR;
 			}
-		} else {
-			*d++ = c;
 		}
-		i--;
+		else {
+			dkoi[o++] = dkoi[i];
+		}
+		i++;
+
 	}
+
 	*src_len = dkoi_len - lines;
 	return dkoi;
 }
@@ -122,7 +151,7 @@ void w_copy_file(char* path, char* content, int eof, int ctime, int wtime)
 	}
 	char* src = content;
 	int src_len = eof;
-	if (isText(path)) { 
+	if (isTextExt(path)) { 
 		converted = toUTF8(content, &src_len); 
 		src = converted;
 	}
@@ -147,22 +176,10 @@ void w_create_dir(char* path, int ctime, int wtime)
 			fatal("Can not create directory \"%s\": %s\n", path, strerror(error));
 		}
 	}
-/*  Commented out because did not work for directories and also is not much necessary for directories
-	HANDLE file = CreateFile(path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL );
-	if (file == INVALID_HANDLE_VALUE) {
-		printf("\nERROR opening directory %s for setting creation time\n", path);
-		return;
-	}
-	set_time_attrs(file, ctime, wtime);
-	if (!CloseHandle(file)) {
-		printf("ERROR closing % s: % d\n", path, GetLastError());
-		exit(1);
-	}
-*/
 }
 
 void w_read_file(char* path, char** data, int* len, int* t_created, int* t_modified)
-// returned  in "data" buffer is malloc'ed, don't forget to free it after use
+// returned in "data" buffer is malloc'ed, don't forget to free it after use
 {
 	HANDLE file = CreateFile(path, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	if (file == INVALID_HANDLE_VALUE) {
@@ -180,13 +197,13 @@ void w_read_file(char* path, char** data, int* len, int* t_created, int* t_modif
 	}
 
 	*data = src;
-	if (isText(path)) {
+	if (isTextExt(path)) {
 		char *converted = fromUTF8(src, &src_len);
 		free(src);
 		*data = converted;
 	}
 	*len = src_len;
-	if (get_time_attrs(file, t_created, t_modified)) {
+	if (!get_time_attrs(file, t_created, t_modified)) {
 		fatal("Error getting timestamps of \"%s\"\n", path);
 	}
 	if (!CloseHandle(file)) {

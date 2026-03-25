@@ -1,6 +1,10 @@
+/*
+*	Windows - Excelsior time conversions 
+*/
+
+#include "xduTime.h"
 #include <Windows.h>
 #include <stdio.h>
-#include "xduTime.h"
 
 static const unsigned long long eraDiff = (unsigned long long)140618 * 24 * 3600; // seconds between 01.01.1600 and 01.01.1986
 
@@ -27,10 +31,10 @@ static void kt2wst(int ktime, SYSTEMTIME* res)
 static const int y4days = 1461;     // 365 * 4 + 1
 static const int y100days = 36524;  // y4days * 25 - 1;
 static const int y400days = 146097; // y100days * 4 + 1;
-static const int firstDate = 1985 * 365 + (1985 / 4) - (1985 / 100) + (1985 / 400) + 1; 
+static const int firstDate = 1985 * 365 + (1985 / 4) - (1985 / 100) + (1985 / 400) + 1; // days before Excelsior era in Julian
 static const int add[12] = { 0,1,-1,0,0,1,1,2,3,3,4,4 };
 
-static int pack_kronos_time(int year, int month, int day, int hour, int min, int sec)
+int pack_kronos_time(int year, int month, int day, int hour, int min, int sec)
 {
 	int is_leap = (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
 	year -= 1;
@@ -46,15 +50,6 @@ static int pack_kronos_time(int year, int month, int day, int hour, int min, int
 	d -= firstDate;
 	if (d < 0) return 0;
 	return d * 24 * 3600 + hour * 3600 + min * 60 + sec;
-}
-
-int windows_time_to_kronos(FILETIME* wtime)
-{
-	SYSTEMTIME wt;
-	if (!FileTimeToSystemTime(wtime, &wt)) {
-		return -1;
-	}
-	return pack_kronos_time(wt.wYear, wt.wMonth, wt.wDay, wt.wHour, wt.wMinute, wt.wSecond);
 }
 
 void unpack_kronos_time(int ktime, int* year, int* month, int* day, int* hour, int* minute, int* second)
