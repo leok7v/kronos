@@ -1,0 +1,8 @@
+ c -a -I. -DBUG4 cgram.c code.c local2.c common.c match.c order.c
+ c -a -I. -DBUG4 reader.c trees.c pftn.c scan.c
+&rm -ql *.i
+ asm cgram.a code.a local2.a common.a match.a order.a reader.a trees.a pftn.a scan.a -d 2000 -o pcc.o h=128
+&rm -ql *.a
+ clink -v pcc -h 20 -b 3
+&rm -ql *.o -ql
+ cp -mq *.cod ../bin/

@@ -1,0 +1,448 @@
+
+	***  clib.o  ***  (Kronos 2.5 C object file)
+
+CREATED : Tue Apr 26 15:51:13 1988
+
+HEADER :
+	Variables		45	Functions		142
+	Export variables	19	Export functions	121
+	Import variables	1	Import functions	22
+	Pool			426	Code			4201
+	Stack			619
+
+VARIABLES :
+	 2 :  _argc_
+	 3 :  -
+	 4 :  -
+	 5 :  -
+	 6 :  -
+	 7 :  -
+	 8 :  -
+	 9 :  -
+	10 :  -
+	11 :  _sibuf
+	12 :  _sobuf
+	13 :  _stdbuf
+	14 :  _smbuf
+	15 :  _iob
+	16 :  _lastbuf
+	17 :  _bufendtab
+	18 :  -
+	19 :  -
+	20 :  -
+	21 :  -
+	22 :  -
+	23 :  -
+	24 :  -
+	25 :  -
+	26 :  _ctype
+	27 :  -
+	28 :  -
+	29 :  -
+	30 :  -
+	31 :  -
+	32 :  sys_errlist
+	33 :  sys_nerr
+	34 :  errno
+	35 :  -
+	36 :  -
+	37 :  -
+	38 :  opterr
+	39 :  optind
+	40 :  optopt
+	41 :  optarg
+	42 :  -
+	43 :  -
+	44 :  ovltmp8
+	45 :  ovltmp10
+	46 :  ovltmp16
+
+FUNCTIONS :
+	 1 :  sbrk
+	 2 :  open
+	 3 :  close
+	 4 :  creat
+	 5 :  read
+	 6 :  write
+	 7 :  lseek
+	 8 :  isatty
+	 9 :  _exit	(void)
+	10 :  access
+	11 :  unlink
+	12 :  rename
+	13 :  getpid
+	14 :  ctime
+	15 :  time
+	16 :  system
+	17 :  exit	(void)
+	18 :  calloc
+	19 :  malloc
+	20 :  free	(void)
+	21 :  realloc
+	22 :  -
+	23 :  -
+	24 :  -
+	25 :  -
+	26 :  -
+	27 :  -
+	28 :  -
+	29 :  _getargs
+	30 :  clearerr	(void)
+	31 :  _doscan
+	32 :  -
+	33 :  -
+	34 :  -
+	35 :  ctermid
+	36 :  fdopen
+	37 :  fgetc
+	38 :  fgets
+	39 :  _filbuf
+	40 :  _findiop
+	41 :  _cleanup	(void)
+	42 :  fclose
+	43 :  fflush
+	44 :  _flsbuf
+	45 :  _xflsbuf
+	46 :  _wrtchk
+	47 :  _findbuf
+	48 :  _bufsync
+	49 :  fopen
+	50 :  freopen
+	51 :  -
+	52 :  fputc
+	53 :  fputs
+	54 :  fread
+	55 :  fseek
+	56 :  ftell
+	57 :  fwrite
+	58 :  getchar
+	59 :  gets
+	60 :  getw
+	61 :  putchar
+	62 :  puts
+	63 :  tempnam
+	64 :  tmpfile
+	65 :  tmpnam
+	66 :  -
+	67 :  putw
+	68 :  rewind	(void)
+	69 :  scanf
+	70 :  fscanf
+	71 :  sscanf
+	72 :  setbuf	(void)
+	73 :  ungetc
+	74 :  -
+	75 :  -
+	76 :  _doprnt
+	77 :  fprintf
+	78 :  printf
+	79 :  sprintf
+	80 :  vfprintf
+	81 :  vprintf
+	82 :  vsprintf
+	83 :  abort
+	84 :  abs
+	85 :  _assert	(void)
+	86 :  ecvt
+	87 :  fcvt
+	88 :  -
+	89 :  frexp
+	90 :  ldexp
+	91 :  memccpy
+	92 :  memchr
+	93 :  memcmp
+	94 :  memcpy
+	95 :  memset
+	96 :  mktemp
+	97 :  modf
+	98 :  perror	(void)
+	99 :  strcat
+	100 :  strchr
+	101 :  strcmp
+	102 :  strcpy
+	103 :  strcspn
+	104 :  strlen
+	105 :  strncat
+	106 :  strncmp
+	107 :  strncpy
+	108 :  strpbrk
+	109 :  strrchr
+	110 :  strspn
+	111 :  strtok
+	112 :  tell
+	113 :  tolower
+	114 :  toupper
+	115 :  atof
+	116 :  atoi
+	117 :  atol
+	118 :  strtod
+	119 :  strtol
+	120 :  qsort	(void)
+	121 :  -
+	122 :  -
+	123 :  -
+	124 :  bsearch
+	125 :  lsearch
+	126 :  sleep
+	127 :  peek
+	128 :  poke	(void)
+	129 :  disable_intr	(void)
+	130 :  enable_intr	(void)
+	131 :  ioctl
+	132 :  chdir
+	133 :  mkdir
+	134 :  rmdir
+	135 :  getenv
+	136 :  -
+	137 :  putenv
+	138 :  -
+	139 :  -
+	140 :  getopt
+	141 :  srand	(void)
+	142 :  rand
+
+
+	***  clib.lib  ***  (Kronos C library file)
+
+CREATED : Sat Apr 16 20:15:32 1988
+
+  6  modules
+
+******  1    clib            CREATED Fri Apr 15 21:35:59 1988
+
+Variables:	16	Functions:	121
+
+VARIABLES :
+	 2 :  _argc_
+	11 :  _sibuf
+	12 :  _sobuf
+	13 :  _stdbuf
+	14 :  _smbuf
+	15 :  _iob
+	16 :  _lastbuf
+	17 :  _bufendtab
+	26 :  _ctype
+	32 :  sys_errlist
+	33 :  sys_nerr
+	34 :  errno
+	38 :  opterr
+	39 :  optind
+	40 :  optopt
+	41 :  optarg
+
+FUNCTIONS :
+	 1 :  sbrk
+	 2 :  open
+	 3 :  close
+	 4 :  creat
+	 5 :  read
+	 6 :  write
+	 7 :  lseek
+	 8 :  isatty
+	 9 :  _exit	(void)
+	10 :  access
+	11 :  unlink
+	12 :  rename
+	13 :  getpid
+	14 :  ctime
+	15 :  time
+	16 :  system
+	17 :  exit	(void)
+	18 :  calloc
+	19 :  malloc
+	20 :  free	(void)
+	21 :  realloc
+	29 :  _getargs
+	30 :  clearerr	(void)
+	31 :  _doscan
+	35 :  ctermid
+	36 :  fdopen
+	37 :  fgetc
+	38 :  fgets
+	39 :  _filbuf
+	40 :  _findiop
+	41 :  _cleanup	(void)
+	42 :  fclose
+	43 :  fflush
+	44 :  _flsbuf
+	45 :  _xflsbuf
+	46 :  _wrtchk
+	47 :  _findbuf
+	48 :  _bufsync
+	49 :  fopen
+	50 :  freopen
+	52 :  fputc
+	53 :  fputs
+	54 :  fread
+	55 :  fseek
+	56 :  ftell
+	57 :  fwrite
+	58 :  getchar
+	59 :  gets
+	60 :  getw
+	61 :  putchar
+	62 :  puts
+	63 :  tempnam
+	64 :  tmpfile
+	65 :  tmpnam
+	67 :  putw
+	68 :  rewind	(void)
+	69 :  scanf
+	70 :  fscanf
+	71 :  sscanf
+	72 :  setbuf	(void)
+	73 :  ungetc
+	76 :  _doprnt
+	77 :  fprintf
+	78 :  printf
+	79 :  sprintf
+	80 :  vfprintf
+	81 :  vprintf
+	82 :  vsprintf
+	83 :  abort
+	84 :  abs
+	85 :  _assert	(void)
+	86 :  ecvt
+	87 :  fcvt
+	89 :  frexp
+	90 :  ldexp
+	91 :  memccpy
+	92 :  memchr
+	93 :  memcmp
+	94 :  memcpy
+	95 :  memset
+	96 :  mktemp
+	97 :  modf
+	98 :  perror	(void)
+	99 :  strcat
+	100 :  strchr
+	101 :  strcmp
+	102 :  strcpy
+	103 :  strcspn
+	104 :  strlen
+	105 :  strncat
+	106 :  strncmp
+	107 :  strncpy
+	108 :  strpbrk
+	109 :  strrchr
+	110 :  strspn
+	111 :  strtok
+	112 :  tell
+	113 :  tolower
+	114 :  toupper
+	115 :  atof
+	116 :  atoi
+	117 :  atol
+	118 :  strtod
+	119 :  strtol
+	120 :  qsort	(void)
+	124 :  bsearch
+	125 :  lsearch
+	126 :  sleep
+	127 :  peek
+	128 :  poke	(void)
+	129 :  disable_intr	(void)
+	130 :  enable_intr	(void)
+	131 :  ioctl
+	132 :  chdir
+	133 :  mkdir
+	134 :  rmdir
+	135 :  getenv
+	137 :  putenv
+	140 :  getopt
+	141 :  srand	(void)
+	142 :  rand
+
+******  2    c_run           CREATED Fri Apr 15 21:44:36 1988
+
+Variables:	0	Functions:	27
+
+FUNCTIONS :
+	 1 :  _getpid
+	 2 :  _sbrk
+	 3 :  _open
+	 4 :  _access
+	 5 :  _close
+	 6 :  _unlink
+	 7 :  _read
+	 8 :  _write
+	 9 :  _lseek
+	10 :  _termid	(void)
+	11 :  _isatty
+	12 :  __exit	(void)
+	13 :  __abort	(void)
+	14 :  _stargs	(void)
+	15 :  _ctime
+	16 :  _prch	(void)
+	17 :  _system
+	18 :  _perror
+	19 :  look	(void)
+	20 :  _time
+	21 :  _rename
+	22 :  _zero	(void)
+	23 :  _iocntrl
+	24 :  _setipt	(void)
+	25 :  _chdir
+	26 :  _mkdir
+	27 :  _rmdir
+
+******  3    env             CREATED Fri Apr 15 21:18:28 1988
+
+Variables:	1	Functions:	0
+
+VARIABLES :
+	 2 :  environ
+
+******  4    setjmp          CREATED Fri Apr 15 21:58:12 1988
+
+Variables:	0	Functions:	2
+
+FUNCTIONS :
+	 1 :  setjmp
+	 2 :  longjmp	(void)
+
+******  5    cmath           CREATED Fri Apr 15 21:41:29 1988
+
+Variables:	1	Functions:	29
+
+VARIABLES :
+	10 :  signgam
+
+FUNCTIONS :
+	 1 :  asin
+	 3 :  acos
+	 4 :  atan
+	 5 :  atan2
+	 6 :  erf
+	 7 :  erfc
+	 8 :  fabs
+	 9 :  floor
+	10 :  ceil
+	11 :  fmod
+	12 :  gamma
+	14 :  hypot
+	15 :  jn
+	16 :  yn
+	18 :  j0
+	19 :  y0
+	21 :  j1
+	22 :  y1
+	24 :  pow
+	25 :  log
+	26 :  log10
+	28 :  sin
+	30 :  cos
+	31 :  sinh
+	32 :  cosh
+	34 :  sqrt
+	35 :  tan
+	36 :  tanh
+	37 :  exp
+
+******  6    matherr         CREATED Sat Apr 16 17:22:59 1988
+
+Variables:	0	Functions:	1
+
+FUNCTIONS :
+	 1 :  matherr
+

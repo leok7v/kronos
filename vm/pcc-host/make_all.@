@@ -1,0 +1,20 @@
+$echo on
+
+path . /ss/C /ss/bin /ss/sym
+
+cd /ss/C/m2
+make
+
+cd /ss/C/docpp
+make
+
+cd /ss/C/dopcc
+make
+
+cd /ss/C/doasm
+make
+
+cd /ss/C/crts
+make
+
+cd /ss/C
