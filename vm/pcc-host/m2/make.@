@@ -1,0 +1,3 @@
+ mx k_run.d c_run.d k_run.m c_run.m
+ cp -mq *.cod ../bin/
+&rm -lq *.ref

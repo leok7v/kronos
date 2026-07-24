@@ -1,0 +1,5 @@
+ c -a -Dkronos -DexcII cpp.c cpy.c
+ asm -o cpp cpp cpy
+ clink -v cpp -h 20 -b 8
+&rm -ql *.o *.a
+ cp -mq *.cod ../bin/
