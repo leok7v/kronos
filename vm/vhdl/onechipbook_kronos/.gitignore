@@ -1,0 +1,13 @@
+sim/work/
+sim/work_*/
+sim/boot.dec
+sim/*.dec
+db/
+incremental_db/
+output_files/
+*.qws
+*.rpt
+*.summary
+*.done
+*.pin
+*.smsg

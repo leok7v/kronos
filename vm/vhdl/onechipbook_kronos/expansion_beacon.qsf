@@ -1,0 +1,73 @@
+# Expansion-slot pin-ID beacon (Cyclone EP1C12 / Quartus 11.0).
+# Each of the 42 expansion-slot GPIOs transmits its own FPGA pin number
+# ("P122\r\n" etc.) at 2400 8N1; txp[42] repeats the scheme on the console
+# DB9 TX (FPGA pin 3, reads "P003") to validate the method first.
+# Step 0 of vm/vhdl/tang9k_card/DESIGN.md.
+set_global_assignment -name FAMILY "Cyclone"
+set_global_assignment -name DEVICE EP1C12Q240C8
+set_global_assignment -name TOP_LEVEL_ENTITY expansion_beacon
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 11.0
+set_global_assignment -name LAST_QUARTUS_VERSION 11.0
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED"
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS_NO_OUTPUT_GND "AS INPUT TRI-STATED"
+set_global_assignment -name VHDL_FILE src/expansion_beacon.vhdl
+set_global_assignment -name SDC_FILE expansion_beacon.sdc
+
+set_location_assignment PIN_28  -to clk
+set_location_assignment PIN_153 -to rst_n
+set_location_assignment PIN_43  -to led[0]
+set_location_assignment PIN_44  -to led[1]
+set_location_assignment PIN_45  -to led[2]
+set_location_assignment PIN_46  -to led[3]
+set_location_assignment PIN_47  -to led[4]
+set_location_assignment PIN_48  -to led[5]
+set_location_assignment PIN_49  -to led[6]
+set_location_assignment PIN_50  -to led[7]
+set_location_assignment PIN_240 -to led[8]
+
+# txp[i] must track the PINS constant order in expansion_beacon.vhdl.
+set_location_assignment PIN_122 -to txp[0]
+set_location_assignment PIN_123 -to txp[1]
+set_location_assignment PIN_124 -to txp[2]
+set_location_assignment PIN_125 -to txp[3]
+set_location_assignment PIN_126 -to txp[4]
+set_location_assignment PIN_127 -to txp[5]
+set_location_assignment PIN_128 -to txp[6]
+set_location_assignment PIN_131 -to txp[7]
+set_location_assignment PIN_132 -to txp[8]
+set_location_assignment PIN_133 -to txp[9]
+set_location_assignment PIN_134 -to txp[10]
+set_location_assignment PIN_135 -to txp[11]
+set_location_assignment PIN_136 -to txp[12]
+set_location_assignment PIN_137 -to txp[13]
+set_location_assignment PIN_138 -to txp[14]
+set_location_assignment PIN_139 -to txp[15]
+set_location_assignment PIN_140 -to txp[16]
+set_location_assignment PIN_141 -to txp[17]
+set_location_assignment PIN_143 -to txp[18]
+set_location_assignment PIN_144 -to txp[19]
+set_location_assignment PIN_156 -to txp[20]
+set_location_assignment PIN_158 -to txp[21]
+set_location_assignment PIN_159 -to txp[22]
+set_location_assignment PIN_160 -to txp[23]
+set_location_assignment PIN_161 -to txp[24]
+set_location_assignment PIN_162 -to txp[25]
+set_location_assignment PIN_163 -to txp[26]
+set_location_assignment PIN_164 -to txp[27]
+set_location_assignment PIN_165 -to txp[28]
+set_location_assignment PIN_166 -to txp[29]
+set_location_assignment PIN_167 -to txp[30]
+set_location_assignment PIN_168 -to txp[31]
+set_location_assignment PIN_169 -to txp[32]
+set_location_assignment PIN_170 -to txp[33]
+set_location_assignment PIN_173 -to txp[34]
+set_location_assignment PIN_174 -to txp[35]
+set_location_assignment PIN_175 -to txp[36]
+set_location_assignment PIN_176 -to txp[37]
+set_location_assignment PIN_177 -to txp[38]
+set_location_assignment PIN_178 -to txp[39]
+set_location_assignment PIN_179 -to txp[40]
+set_location_assignment PIN_180 -to txp[41]
+set_location_assignment PIN_3   -to txp[42]
+set_location_assignment PIN_121 -to txp[43]

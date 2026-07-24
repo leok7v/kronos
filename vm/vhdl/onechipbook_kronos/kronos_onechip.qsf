@@ -1,0 +1,140 @@
+# OneChipBook: boot the REAL Excelsior OS from SD (VM-convention
+# microcode + sd_disk_controller + DL11/UART). Cyclone EP1C12 / Quartus 11.0.
+# dd boot.img to the SD card (raw), insert it, flash, unplug USB-Blaster, power-cycle.
+set_global_assignment -name FAMILY "Cyclone"
+set_global_assignment -name DEVICE EP1C12Q240C8
+set_global_assignment -name TOP_LEVEL_ENTITY OneChipBookTop
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 11.0
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED"
+set_global_assignment -name VHDL_FILE src/KronosTypes.vhdl
+set_global_assignment -name VHDL_FILE src/BlockRam.vhdl
+set_global_assignment -name VHDL_FILE src/DistrRam.vhdl
+set_global_assignment -name VHDL_FILE src/sdram_controller.vhdl
+set_global_assignment -name VHDL_FILE src/sd_reader.vhdl
+set_global_assignment -name VHDL_FILE src/sd_disk_controller.vhdl
+set_global_assignment -name VHDL_FILE src/dl11_console.vhdl
+set_global_assignment -name VHDL_FILE src/suspend_ctrl.vhdl
+set_global_assignment -name VHDL_FILE src/OneChipBook.vhdl
+set_global_assignment -name VHDL_FILE src/font_rom.vhdl
+set_global_assignment -name VHDL_FILE src/video_pll.vhdl
+set_global_assignment -name VHDL_FILE src/system_pll.vhdl
+set_global_assignment -name VHDL_FILE src/vga_console.vhdl
+set_global_assignment -name VHDL_FILE src/console_selftest.vhdl
+set_global_assignment -name VHDL_FILE src/perf_report.vhdl
+set_global_assignment -name VHDL_FILE src/ps2_keyboard.vhdl
+set_global_assignment -name VHDL_FILE src/OneChipBookTop.vhdl
+set_global_assignment -name VHDL_FILE ../5.0/cpu/uCmdBits.vhdl
+set_global_assignment -name VHDL_FILE src/Microcode.vhdl
+set_global_assignment -name VHDL_FILE ../5.0/cpu/ALU.vhdl
+set_global_assignment -name VHDL_FILE ../5.0/cpu/Decode.vhdl
+set_global_assignment -name VHDL_FILE ../5.0/cpu/InstructionCache.vhdl
+set_global_assignment -name VHDL_FILE src/DataCacheFM.vhdl
+set_global_assignment -name VHDL_FILE src/DataStorage.vhdl
+set_global_assignment -name VHDL_FILE ../5.0/cpu/Kronos.vhdl
+# SD (SPI): SCLK=63, MOSI/CMD=64, MISO/DAT0=62, CS/DAT3=65
+set_location_assignment PIN_63 -to sd_sclk
+set_location_assignment PIN_64 -to sd_mosi
+set_location_assignment PIN_62 -to sd_miso
+set_location_assignment PIN_65 -to sd_cs
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to sd_miso
+set_location_assignment PIN_3   -to uart_txd
+set_location_assignment PIN_2   -to uart_rxd
+# Park uart_rxd at the UART idle (mark) level when nothing is plugged in.
+# A floating RX pin sitting next to the transmitting TX pin is what produced
+# the phantom characters and the "0080h" feedback loop that got console RECEIVE
+# disabled in the first place. The pull-up makes RX safe with or without an
+# adapter attached, so UART_RX_EN can stay on permanently.
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to uart_rxd
+set_location_assignment PIN_28  -to clk
+set_location_assignment PIN_153 -to rst_n
+set_location_assignment PIN_43  -to led[0]
+set_location_assignment PIN_44  -to led[1]
+set_location_assignment PIN_45  -to led[2]
+set_location_assignment PIN_46  -to led[3]
+set_location_assignment PIN_47  -to led[4]
+set_location_assignment PIN_48  -to led[5]
+set_location_assignment PIN_49  -to led[6]
+set_location_assignment PIN_50  -to led[7]
+set_location_assignment PIN_240 -to led[8]
+set_location_assignment PIN_38  -to sd_clk
+set_location_assignment PIN_39  -to sd_cke
+set_location_assignment PIN_197 -to sd_cs_n
+set_location_assignment PIN_196 -to sd_ras_n
+set_location_assignment PIN_195 -to sd_cas_n
+set_location_assignment PIN_194 -to sd_we_n
+set_location_assignment PIN_193 -to sd_dqml
+set_location_assignment PIN_223 -to sd_dqmh
+set_location_assignment PIN_200 -to sd_ba[0]
+set_location_assignment PIN_201 -to sd_ba[1]
+set_location_assignment PIN_203 -to sd_a[0]
+set_location_assignment PIN_206 -to sd_a[1]
+set_location_assignment PIN_207 -to sd_a[2]
+set_location_assignment PIN_208 -to sd_a[3]
+set_location_assignment PIN_235 -to sd_a[4]
+set_location_assignment PIN_234 -to sd_a[5]
+set_location_assignment PIN_233 -to sd_a[6]
+set_location_assignment PIN_228 -to sd_a[7]
+set_location_assignment PIN_227 -to sd_a[8]
+set_location_assignment PIN_226 -to sd_a[9]
+set_location_assignment PIN_202 -to sd_a[10]
+set_location_assignment PIN_225 -to sd_a[11]
+set_location_assignment PIN_224 -to sd_a[12]
+set_location_assignment PIN_181 -to sd_dq[0]
+set_location_assignment PIN_182 -to sd_dq[1]
+set_location_assignment PIN_183 -to sd_dq[2]
+set_location_assignment PIN_184 -to sd_dq[3]
+set_location_assignment PIN_185 -to sd_dq[4]
+set_location_assignment PIN_186 -to sd_dq[5]
+set_location_assignment PIN_187 -to sd_dq[6]
+set_location_assignment PIN_188 -to sd_dq[7]
+set_location_assignment PIN_222 -to sd_dq[8]
+set_location_assignment PIN_219 -to sd_dq[9]
+set_location_assignment PIN_218 -to sd_dq[10]
+set_location_assignment PIN_217 -to sd_dq[11]
+set_location_assignment PIN_216 -to sd_dq[12]
+set_location_assignment PIN_215 -to sd_dq[13]
+set_location_assignment PIN_214 -to sd_dq[14]
+set_location_assignment PIN_213 -to sd_dq[15]
+
+set_global_assignment -name LAST_QUARTUS_VERSION 11.0
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS_NO_OUTPUT_GND "AS INPUT TRI-STATED"
+set_global_assignment -name SDC_FILE kronos_onechip.sdc
+
+# DIP switches SW1..8 = pins 53..60 (sw(3:0) selects SDRAM read_lat for bring-up)
+set_location_assignment PIN_53 -to sw[0]
+set_location_assignment PIN_54 -to sw[1]
+set_location_assignment PIN_55 -to sw[2]
+set_location_assignment PIN_56 -to sw[3]
+set_location_assignment PIN_57 -to sw[4]
+set_location_assignment PIN_58 -to sw[5]
+set_location_assignment PIN_59 -to sw[6]
+set_location_assignment PIN_60 -to sw[7]
+
+# VGA text console (18-bit resistor DAC)
+set_location_assignment PIN_75 -to vga_hsync
+set_location_assignment PIN_74 -to vga_vsync
+set_location_assignment PIN_104 -to vga_r[5]
+set_location_assignment PIN_101 -to vga_r[4]
+set_location_assignment PIN_100 -to vga_r[3]
+set_location_assignment PIN_99 -to vga_r[2]
+set_location_assignment PIN_98 -to vga_r[1]
+set_location_assignment PIN_95 -to vga_r[0]
+set_location_assignment PIN_94 -to vga_g[5]
+set_location_assignment PIN_93 -to vga_g[4]
+set_location_assignment PIN_88 -to vga_g[3]
+set_location_assignment PIN_87 -to vga_g[2]
+set_location_assignment PIN_86 -to vga_g[1]
+set_location_assignment PIN_85 -to vga_g[0]
+set_location_assignment PIN_84 -to vga_b[5]
+set_location_assignment PIN_83 -to vga_b[4]
+set_location_assignment PIN_82 -to vga_b[3]
+set_location_assignment PIN_79 -to vga_b[2]
+set_location_assignment PIN_78 -to vga_b[1]
+set_location_assignment PIN_77 -to vga_b[0]
+
+# PS/2 keyboard -- open-collector bus, so both lines need a pull-up
+set_location_assignment PIN_68 -to ps2_clk
+set_location_assignment PIN_67 -to ps2_data
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to ps2_clk
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to ps2_data
