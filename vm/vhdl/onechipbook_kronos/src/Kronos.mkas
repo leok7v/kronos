@@ -1,0 +1,1744 @@
+INSTRUCTION-SIZE = 40
+ADDRESS-SIZE = 11
+DEFAULT = [ go_next=0 x=31 y=31 alu=alu_x z=31 flag=flag_true 36=0 37=0 38=0 39=0 ]
+
+x = [ 4 3 2 1 0 ]
+y = [ 9 8 7 6 5 ]
+z = [ 14 13 12 11 10 ]
+alu = [ 19 18 17 16 15 ]
+flag = [ 22 21 20 ]
+trap_vec = [ 39 38 37 36 ]
+
+mem_read  = [ y=21 19 18 17 16 15 ]
+mem_write = [ z=22 19 18 17 16 15 ]
+
+sio_read  = [ mem_read=0 x_io ]
+sio_write = [ mem_write=0 x_io ]
+
+go_next  = [ 24=1 23=1 35 34 33 32 31 30 29 28 27 26 25 ]
+goto     = [ 24=1 23=0 35 34 33 32 31 30 29 28 27 26 25 ]
+call     = [ 24=0 23=1 35 34 33 32 31 30 29 28 27 26 25 ]
+return   = [ 24=0 23=0 ]
+drop_stk = [ z=23 ]
+
+x_const  = [ x=31 32 31 30 29 28 27 26 25 ]
+y_const  = [ y=31 32 31 30 29 28 27 26 25 ]
+y_nil    = [ y=27 ]
+x_io     = [ x=20 ]
+x_imm4   = [ x=19 ]
+y_imm8   = [ y=19 ]
+x_copt   = [ x=rg_stk y=26 ]
+x_swap   = [ x=28 ]
+x_trap   = [ x=29 ]
+
+wr_tlb   = [ z=24 ]
+wr_base  = [ z=25 x=31 ]
+
+rg_bs  =  9
+rg_p   = 10
+rg_g   = 11
+rg_l   = 12
+rg_m   = 13
+rg_s   = 14
+rg_f   = 15
+//
+rg_stk = 16
+rg_h   = 17
+rg_pc  = 18
+// 19 is used for imm values
+// 20 - I/O
+// 21 - memory read
+// 22 - memory write
+// 23 - drop u-address stack
+// 24 - TLB
+// 25 - BASE
+// 26 - COPT
+// 27 - NIL
+// 28 - SWAP
+// 29 - trap
+// 31 - const
+
+alu_x      =  0
+alu_y      =  1
+alu_not_x  =  2
+alu_and    =  3
+alu_or     =  4
+alu_xor    =  5
+alu_add    =  6
+alu_sub    =  7
+alu_bic    =  8
+alu_mul0   = 10
+alu_mul1   = 11
+//
+alu_add_xb = 14
+alu_lxb    = 15
+alu_sxb    = 16
+alu_lss    = 17
+alu_leq    = 18
+alu_gtr    = 19
+alu_geq    = 20
+alu_equ    = 21
+alu_neq    = 22
+alu_y_xb0  = 23
+alu_shr    = 24 // unsigned shift right
+//
+alu_lxb_nc = 26
+alu_shrs   = 27 // unsigned shift right with sticky bit
+//
+alu_ror_xy = 30
+alu_rol_xy = 31
+
+flag_true  = 0
+flag_z     = 1
+flag_not_z = 2
+flag_c     = 3
+flag_not_c = 4
+flag_stk   = 5
+flag_p     = 6
+
+reset:
+        [ goto=reset0 ]
+        [ goto=reset1 ]
+        [ goto=reset2 ]
+        [ goto=reset3 ]
+
+reset1:
+        [ call=ini_tlb ]
+        [ mem_read=0 x_const=0 z=rg_p ]
+        [ goto=restore_regs ]
+
+
+reset0:
+reset2:
+reset3:
+        [ call=ini_tlb ]
+        [ x_const=0x40 z=rg_p ]
+        [ x_const=0x50 z=rg_g ]
+        [ x_const=0x60 z=rg_l ]
+        [ x_const=0x00 z=rg_m ]
+        [ x_const=0xb0 z=rg_h ]
+        [ x_const=0x70 z=rg_s ]
+        [ x_const=0xc0 z=rg_f ]
+        [ x_const=0x00 z=rg_pc ] // must be after rg_f
+        [ mem_write=0 x=rg_g y=rg_f ]
+        [ mem_write=7 x=rg_p y_const=0 ]
+        [ mem_write=5 x=rg_p y_const=0xb0 ]
+        [ goto=QUIT ]
+
+// Dont' jump to this label directly, go to QUIT first
+console:[ sio_write y_const=0x0d trap_vec=1 ]
+        [ sio_write y_const=0x0a ]
+        [ sio_write y_const=0x0d ]
+        [ sio_write y_const=0x0a ]
+        [ sio_write y_const=0x47 ]
+        [ sio_write y_const=0x20 ]
+        [ x=rg_g z=1 call=print_word ]
+        [ sio_write y_const=0x20 ]
+        [ sio_write y_const=0x46 ]
+        [ sio_write y_const=0x20 ]
+        [ x=rg_f z=1 call=print_word ]
+        [ sio_write y_const=0x20 ]
+        [ sio_write y_const=0x50 ]
+        [ sio_write y_const=0x43 ]
+        [ sio_write y_const=0x20 ]
+        [ x=rg_pc z=1 call=print_word ]
+        [ sio_write y_const=0x20 ]
+        [ sio_write y_const=0x2d ]
+        [ sio_write y_const=0x3e ]
+        [ sio_write y_const=0x20 ]
+        [ x=rg_f alu=alu_add_xb y=rg_pc z=1 ]
+        [ mem_read=0 x=1 z=1 ]
+        [ call=print_word ]
+        [ sio_write y_const=0x0d ]
+        [ sio_write y_const=0x0a ]
+        // r8 - current memory address
+        // r9 - a number typed by user
+        // r10 - typed digits count
+        [ call=save_regs ]
+        [ x_const=0 z=8 ]
+        [ mem_write=0 x=8 y=rg_p ]
+cl_loop:[ sio_write y_const=0x0d ]
+        [ sio_write y_const=0x0a ]
+        [ x=8 z=1 call=print_word ]
+        [ sio_write y_const=0x3d ]
+        [ mem_read=0 x=8 z=1 ]
+        [ call=print_word ]
+        [ goto=cl_ok ]
+cl_pf:  [ sio_write y_const=0x50 ]
+        [ sio_write y_const=0x46 ]
+cl_ok:  [ sio_write y_const=0x20 ]
+cl_cw:  [ x_const=0 z=9 ]
+        [ x_const=0 z=10 ]
+cl_ch:  // get a character from serial port
+        [ sio_read z=1 ]
+        // is it 'h' ?
+        [ x=1 alu=alu_sub y_const=0x68 flag=flag_not_z ]
+        [ goto=cl30 ]
+        [ call=boot_ata ]
+        [ sio_write y_const=0x68 ]
+        [ x_const=0 z=8 ]
+        [ sio_write y_const=0x0d ]
+        [ sio_write y_const=0x0a ]
+        [ goto=cl_loop ]
+cl30:   // is it 'w' ?
+        [ x=1 alu=alu_sub y_const=0x77 flag=flag_not_z ]
+        [ goto=cl20 ]
+        [ call=read_hex_digit ]
+        [ x_io alu=alu_add y=1 z=1 ]
+        [ mem_write=0x10 x=1 y=9 ]
+        [ sio_write y_const=0x30 ]
+        [ goto=cl_cw ]
+cl20:   // is it 'r' ?
+        [ x=1 alu=alu_sub y_const=0x72 flag=flag_not_z ]
+        [ goto=cl21 ]
+        [ call=read_hex_digit ]
+        [ x_io alu=alu_add y=1 z=1 ]
+        [ mem_read=0x10 x=1 z=1 ]
+        [ x=1 alu=alu_ror_xy y_const=16 z=1 ]
+        [ x_const=4 z=2 ]
+        [ call=pw1 ]
+        [ goto=cl_cw ]
+cl21:   // is it CR ?
+        [ x=1 alu=alu_sub y_const=0x0d flag=flag_not_z ]
+        [ goto=cl1 x=10 flag=flag_z ]
+        [ goto=cl5 ]
+        [ mem_write=0 x=8 y=9 ]
+cl5:	[ x=8 alu=alu_add y_const=1 z=8 ]
+        [ goto=cl_loop ]
+cl1:    // is it '/'?
+        [ x=1 alu=alu_sub y_const=0x2f flag=flag_not_z ]
+        [ goto=cl2 ]
+        [ sio_write y=1 ]
+        [ x=10 flag=flag_z ]
+        [ goto=cl6 ]
+        [ x=9 z=8 goto=cl13 ]
+cl6:    [ mem_read=0 x=8 z=8 ]
+cl13:   [ sio_write y_const=0x0d ]
+        [ sio_write y_const=0x0a ]
+        [ goto=cl_loop ]
+cl2:    // is it a digit?
+        [ x=1 alu=alu_sub y_const=0x30 z=2 flag=flag_c ]
+        [ goto=cl3 ]
+        [ x_const=0x39 alu=alu_sub y=1 flag=flag_c ]
+        [ goto=cl3 ]
+cl16:   [ sio_write y=1 ]
+        [ x=10 alu=alu_add y_const=1 z=10 ]
+	[ x=9 alu=alu_rol_xy y_const=4 z=9 ]
+        [ x=9 alu=alu_or y=2 z=9 goto=cl_ch ]
+cl3:    // is it a hexadecimal digit?
+        [ x=1 alu=alu_sub y_const=0x61 z=2 flag=flag_c ]
+        [ goto=cl4 ]
+        [ x_const=0x66 alu=alu_sub y=1 flag=flag_c ]
+        [ goto=cl4 ]
+        [ x=2 alu=alu_add y_const=10 z=2 ]
+        [ goto=cl16 ]
+cl4:    // is it 'G'?
+        [ x=1 alu=alu_sub y_const=0x67 flag=flag_not_z ]
+        [ goto=cl7 ]
+        [ sio_write y=1 ]
+        [ x=10 flag=flag_z ]
+        [ goto=cl8 ]
+        [ x=9 z=rg_p goto=cl9 ]
+cl8:    [ mem_read=0 x=10 z=rg_p ]
+cl9:    [ sio_write y_const=0x0d ]
+        [ sio_write y_const=0x0a ]
+        [ goto=restore_regs ]
+cl7:    // is it 'L'?
+        [ x=1 alu=alu_sub y_const=0x6c flag=flag_not_z ]
+        [ goto=cl11 ]
+        [ x=10 flag=flag_z ]
+        [ goto=cl15 ]
+        [ sio_write y=1 ]
+        [ x=9 z=8 ]
+        [ x_const=0 z=9 ]
+        [ x_const=0 z=10 ]
+cl15:   [ call=loader_command ]
+        [ goto=cl_ch ]
+cl11:   // is it LF
+        [ x=1 alu=alu_sub y_const=0x0a flag=flag_not_z ]
+        [ goto=cl_err ]
+        [ goto=cl_ch ]
+cl_err: // invalid input
+        [ drop_stk ]
+        [ x_const=0x3f z=2 ]
+        [ call=print_byte ]
+        [ goto=cl_loop ]
+
+loader_command:
+        [ x_const=0 z=3 ]
+lc1:    // get a character from serial port
+        [ sio_read z=1 ]
+lc2:    // is it a digit?
+        [ x=1 alu=alu_sub y_const=0x30 z=2 flag=flag_c ]
+        [ goto=lc3 ]
+        [ x_const=0x39 alu=alu_sub y=1 flag=flag_c ]
+        [ goto=lc3 ]
+lc4:   	[ x=3 alu=alu_rol_xy y_const=4 z=3 ]
+        [ x=3 alu=alu_or y=2 z=3 goto=lc1 ]
+lc3:    // is it a hexadecimal digit?
+        [ x=1 alu=alu_sub y_const=0x61 z=2 flag=flag_c ]
+        [ goto=lc5 ]
+        [ x_const=0x66 alu=alu_sub y=1 flag=flag_c ]
+        [ goto=lc5 ]
+        [ x=2 alu=alu_add y_const=10 z=2 ]
+        [ goto=lc4 ]
+lc5:    // is it CR?
+        [ x=1 alu=alu_sub y_const=0x0d flag=flag_not_z ]
+        [ goto=cl_err ]
+        [ mem_write=0 x=8 y=3 ]
+        [ x=8 alu=alu_add y_const=1 z=8 ]
+        [ return ]
+
+boot_ata:
+        [ x_const=8 z=5 ]
+        [ x_const=0 z=3 ]
+        [ mem_write=0x12 x_io y=5 ]
+        [ mem_write=0x13 x_io y=3 ]
+        [ mem_write=0x14 x_io y=3 ]
+        [ mem_write=0x15 x_io y=3 ]
+        [ mem_write=0x16 x_io y_const=0x40 ]
+        [ mem_write=0x17 x_io y_const=0x20 ]
+        // r5 - sector count
+        // r3 - address
+ba1:    [ mem_read=0x17 x_io z=1 ]
+        [ x=1 alu=alu_and y_const=0x80 flag=flag_not_z ]
+        [ goto=ba1 ]
+        // TODO check for drive error error
+        [ x=1 alu=alu_and y_const=0x08 flag=flag_z ]
+        [ goto=ba1 ]
+        [ x_const=0x80 z=4 ]
+        // r4 - word count
+ba2:    [ mem_read=0x10 x_io z=1 ]
+        [ mem_read=0x10 x_io z=2 ]
+        [ x=2 alu=alu_ror_xy y_const=16 z=2 ]
+        [ x=1 alu=alu_or y=2 z=1 ]
+        [ mem_write=0 x=3 y=1 ]
+        [ x=3 alu=alu_add y_const=1 z=3 ]
+        [ x=4 alu=alu_sub y_const=1 z=4 flag=flag_not_z ]
+        [ goto=ba2 ]
+        [ x=5 alu=alu_sub y_const=1 z=5 flag=flag_not_z ]
+        [ goto=ba1 ]
+        [ return ]
+
+read_hex_digit:
+        [ sio_read z=2 ]
+        [ x=2 alu=alu_sub y_const=0x30 z=1 flag=flag_c ]
+        [ goto=cl_err ]
+        [ x=2 alu=alu_sub y_const=0x3a flag=flag_c ]
+        [ goto=ret ]
+        [ x=2 alu=alu_sub y_const=0x61 flag=flag_c ]
+        [ goto=cl_err ]
+        [ x=2 alu=alu_sub y_const=0x67 flag=flag_not_c ]
+        [ goto=cl_err ]
+        [ x=2 alu=alu_sub y_const=0x57 z=1 return ]
+
+print_byte:
+        [ sio_write y=2 ]
+        [ x=1 alu=alu_ror_xy y_const=8 z=1 ]
+        [ x_const=2 z=2 ]
+        [ goto=pw1 ]
+
+print_word:
+        [ x_const=8 z=2 ]
+pw1:    [ x=1 alu=alu_rol_xy y_const=4 z=1 ]
+        [ x=1 alu=alu_and y_const=15 z=3 ]
+	[ x=3 alu=alu_sub y_const=10 flag=flag_c ]
+        [ goto=pw2 ]
+	[ x=3 alu=alu_add y_const=7 z=3 ]
+pw2:    [ x=3 alu=alu_add y_const=0x30 z=3 ]
+	[ sio_write y=3 ]
+        [ x=2 alu=alu_sub y_const=1 z=2 flag=flag_not_z ]
+        [ goto=pw1 ]
+        [ return ]
+
+save_regs:
+        [ x_const=0 alu=alu_not_x z=rg_h ]
+        [ call=save_stack ]
+        [ mem_write=0 x=rg_p y=rg_g ]
+        [ mem_write=1 x=rg_p y=rg_l ]
+        [ mem_write=2 x=rg_p y=rg_pc ]
+        [ mem_write=3 x=rg_p y=rg_m ]
+        [ mem_write=4 x=rg_p y=rg_s return ]
+
+save_stack:
+        [ x_const=0 z=1 flag=flag_stk ]
+        [ goto=ss2 ]
+        [ mem_write=0 x=rg_s y=1 ]
+        [ x=rg_s alu=alu_add y_const=1 z=rg_s return ]
+ss2:    [ x_const=1 z=2 ]
+ss3:    [ mem_write=0 x=rg_s y=rg_stk ]
+        [ x=rg_s alu=alu_add y=2 z=rg_s flag=flag_stk ]
+        [ x=1 alu=alu_add y=2 z=1 goto=ss3 ]
+        [ mem_write=0 x=rg_s y=1 ]
+        [ x=rg_s alu=alu_add y_const=1 z=rg_s return ]
+
+restore_regs:
+        [ mem_read=3 x=rg_p z=rg_m ]
+        [ mem_read=5 x=rg_p z=1 ]
+        [ mem_read=0 x=rg_p z=rg_g ]
+        [ mem_read=0 x=rg_g z=rg_f ]
+        [ mem_read=2 x=rg_p z=rg_pc ]
+        [ x=1 alu=alu_sub y_const=0x10 z=rg_h ]
+        [ mem_read=1 x=rg_p z=rg_l ]
+        [ mem_read=4 x=rg_p z=rg_s ]
+restore_stack:
+        [ x=rg_s alu=alu_sub y_const=1 z=rg_s ]
+        [ mem_read=0 x=rg_s z=1 ]
+        [ x=1 flag=flag_z ]
+        [ goto=ret ]
+rr2:    [ x=rg_s alu=alu_sub y_const=1 z=rg_s ]
+        [ x=1 alu=alu_sub y_const=1 z=1 flag=flag_not_z ]
+        [ mem_read=0 x=rg_s z=rg_stk goto=rr2 ]
+        [ return ]
+
+ini_tlb:[ y_const=0 wr_base ]
+// clear TLB
+        [ x_const=0 z=1 ]
+        [ x_const=1 z=3 ]
+        [ x=3 alu=alu_rol_xy y_const=12 z=2 ]
+        [ x=3 alu=alu_rol_xy y_const=9 z=3 ]
+        // r1 - address
+        // r2 - page size
+        // r3 - TLB size
+ini_tlb1:
+        [ x=1 y_const=0 wr_tlb ]
+        [ x=3 alu=alu_sub y_const=1 z=3 flag=flag_not_z ]
+        [ x=1 alu=alu_add y=2 z=1 goto=ini_tlb1 ]
+// Map 1M of address space
+        [ x_const=0 z=1 ]
+        [ x_const=1 z=3 ]
+        [ x=3 alu=alu_rol_xy y_const=6 z=3 ]
+        // r1 - address
+        // r2 - page size
+        // r3 - 1M of pages
+ini_tlb2:
+        [ x=1 alu=alu_or y_const=7 z=4 ]
+        [ x=1 y=4 wr_tlb ]
+        [ x=3 alu=alu_sub y_const=1 z=3 flag=flag_not_z ]
+        [ x=1 alu=alu_add y=2 z=1 goto=ini_tlb2 ]
+// Map IO page
+        [ x_io alu=alu_or y_const=3 z=1 ]
+        [ x_io y=1 wr_tlb ]
+        [ return ]
+
+trap-3: [ x_const=0x03 z=1 ]
+        [ goto=trap ]
+
+trap-7: [ x_const=0x07 z=1 ]
+        [ goto=trap ]
+
+trap-41:[ x_const=0x41 z=1 ]
+        [ goto=trap ]
+
+trap-49:[ x_const=0x49 z=1 ]
+        [ goto=trap ]
+
+trap-4a-push-r2:
+        [ x=2 z=rg_stk ]
+trap-4a:[ x_const=0x4a z=1 ]
+        [ goto=trap ]
+
+trap-and-halt:
+        [ call=trap0 ]
+        [ goto=QUIT ]
+
+trap:   [ drop_stk ]  
+trap0:  [ mem_write=6 x=rg_p y=1 ]
+        [ x=1 alu=alu_sub y_const=0x40 flag=flag_not_c ]
+        [ goto=trap1 ]
+        [ x=1 alu=alu_sub y_const=0x1f flag=flag_not_c ]
+        [ x=1 flag=flag_z goto=trap2 ]
+        [ goto=ret ]
+        [ x_const=1 alu=alu_rol_xy y=1 z=2 ]
+        [ x=2 alu=alu_and y=rg_m flag=flag_z ]
+        [ goto=trap-disabled ]
+        [ goto=trap-enabled ]
+trap2:  // trap-no in 0x1f .. 0x3f
+        [ x=rg_m alu=alu_and y_const=1 flag=flag_z ]
+        [ goto=trap-disabled ]
+        [ goto=trap-enabled ]
+trap1:  // trap-no >= 0x40
+        [ x=rg_m alu=alu_add y=rg_m flag=flag_c ]
+        [ goto=trap4 ]
+trap-disabled:
+        [ x=1 alu=alu_xor y_const=0x41 flag=flag_z ]
+        [ goto=ret ]
+        [ x=1 alu=alu_xor y_const=0x42 flag=flag_z ]
+        [ goto=ret ]
+        [ x=1 alu=alu_xor y_const=0x43 flag=flag_z ]
+        [ goto=ret ]
+        [ drop_stk ]
+        [ x_const=0x54 z=2 ]
+        [ call=print_byte ]
+        [ goto=QUIT ]
+trap4:  [ x_const=0x3f z=1 ]
+trap-enabled:
+        [ x=1 alu=alu_add y=1 z=5 ]
+        [ mem_read=1 x=5 z=4 ]
+        // r4 - ADR(p-from), r5 - ADR(P-to)
+        [ goto=tra1 ]
+
+trap-vec-0:
+        [ x_trap z=1 ]
+        [ x=1 alu=alu_and y_const=0x01 flag=flag_z ]
+        [ goto=trap-hndl0 ]
+        [ x_const=0x4c z=1 ]
+        [ goto=trap ]
+trap-hndl0:
+        [ x=1 alu=alu_and y_const=0x02 flag=flag_z ]
+        [ goto=trap-hndl1 ]
+        [ x_const=0x03 z=1 ]
+        [ goto=trap ]
+trap-hndl1:
+        [ x=1 alu=alu_and y_const=0x04 flag=flag_z ]
+        [ goto=trap-hndl2 ]
+        [ x_const=0x40 z=1 ]
+        [ goto=trap ]
+trap-hndl2:
+        [ x_const=0x45 z=1 ]
+        [ goto=trap ]
+
+trap-vec-1: // console
+        [ drop_stk goto=cl_pf ]
+trap-vec-2:
+trap-vec-3:
+trap-vec-4:
+trap-vec-5:
+trap-vec-6:
+trap-vec-7:
+trap-vec-8:
+trap-vec-9:
+trap-vec-10:
+trap-vec-11:
+trap-vec-12:
+trap-vec-13:
+trap-vec-14:
+trap-vec-15:
+        [ goto=QUIT ] 
+
+ret_skip1: // skip byte and return
+        [ y_imm8 goto=ret ]
+return-jump:
+        [ ] // delay slot for PC propagation
+return-jump1:
+        [ ] // delay slot
+return-jump2:
+ret:    [ return ]
+
+LID:    [ x=1 alu=alu_sxb y_imm8 z=rg_stk goto=ret ]
+
+LIW:    [ x=1 alu=alu_sxb y_imm8 z=1 ]
+        [ x=1 alu=alu_sxb y_imm8 z=1 ]
+        [ x=1 alu=alu_sxb y_imm8 z=rg_stk goto=ret ]
+
+LEA:    [ x=1 alu=alu_sub y_const=1 z=1 ]
+        [ mem_read=0 x=1 z=1 ]
+        [ mem_read=0 x=1 z=1 ]
+        [ x=1 alu=alu_add y_imm8 z=rg_stk ]
+        [ return ]
+        
+JLFC:   [ goto=JLF ]
+        [ y_imm8 goto=ret_skip1 ]
+
+JLF:    [ alu=alu_y_xb0 y_imm8 z=1 ]
+        [ x=1 alu=alu_sxb y_imm8 z=1 ]
+        [ x=rg_pc alu=alu_add y=1 z=rg_pc goto=return-jump ]
+
+JSFC:   [ goto=JSF ]
+        [ y_imm8 goto=ret ]
+
+JLBC:   [ goto=JLB ]
+        [ y_imm8 goto=ret_skip1 ]
+
+JLB:    [ alu=alu_y_xb0 y_imm8 z=1 ]
+        [ x=1 alu=alu_sxb y_imm8 z=1 ]
+        [ x=rg_pc alu=alu_sub y=1 z=rg_pc goto=return-jump ]
+
+JSBC:   [ goto=JSB ]
+        [ y_imm8 goto=ret ]
+
+LLW:    [ mem_read=0 x=1 z=rg_stk return ]
+
+LGW:    [ mem_read=0 x=1 z=rg_stk return ]
+
+LEW:    [ x=1 alu=alu_sub y_const=1 z=1 ]
+        [ mem_read=0 x=1 z=1 ]
+        [ mem_read=0 x=1 z=1 ]
+        [ x=1 alu=alu_add y_imm8 z=1 ]
+        [ mem_read=0 x=1 z=rg_stk return ]
+
+LSW:    [ mem_read=0 x=1 z=rg_stk return ]
+
+SLW:    [ mem_write=0 x=1 y=rg_stk return ]
+
+SGW:    [ mem_write=0 x=1 y=rg_stk return ]
+
+SEW:    [ x=1 alu=alu_sub y_const=1 z=1 ]
+        [ mem_read=0 x=1 z=1 ]
+        [ mem_read=0 x=1 z=1 ]
+        [ x=1 alu=alu_add y_imm8 z=1 ]
+        [ mem_write=0 x=1 y=rg_stk return ]
+
+SSW:    [ x=rg_stk alu=alu_add y_imm8 z=1 ]
+        [ mem_write=0 x=1 y=2 return ]
+
+LXB:    [ mem_read=0 x=1 z=1 ]
+        [ x=1 alu=alu_lxb z=rg_stk return ]
+
+LXW:    [ mem_read=0 x=1 z=rg_stk return ]
+
+SXB:    [ x=rg_stk alu=alu_add_xb y=rg_stk z=1 ]
+        [ mem_read=0 x=1 z=4 ]
+        [ x=4 alu=alu_sxb y=3 z=4 ]
+        [ mem_write=0 x=1 y=4 return ]
+
+SXW:    [ x=rg_stk alu=alu_add y=rg_stk z=1 ]
+        [ mem_write=0 x=1 y=2 return ]
+
+SETM:   [ ]
+        [ ]
+        [ ]
+        [ ]
+        [ ]
+        [ return ]
+
+TRA:    [ x=rg_stk z=4 ] // r4 - ADR(p-from), r5 - ADR(P-to)
+tra1:   [ mem_read=0 x=5 z=5 ] // r5 - P-to
+        [ call=save_regs ]
+        [ mem_write=0 x=4 y=rg_p ]
+        [ x_const=0 z=3 ]
+        [ mem_write=1 x=3 y=rg_p ]
+        [ mem_write=0 x=3 y=5 ]
+        [ x=5 z=rg_p goto=restore_regs ]
+
+TR:     // TODO: Implement atomic memory access
+        [ mem_read=0 x=1 z=rg_stk ]
+        [ mem_write=0 x=1 y_const=0 return ]
+
+IDLE:   [ x=rg_pc alu=alu_sub y_const=1 z=rg_pc ]
+        [ goto=return-jump1 ]
+
+MUL:    // TODO check overflow
+        [ x=rg_stk z=1 flag=flag_p goto=mul_xp ]
+        [ goto=mul_pn ]
+mul_nn: [ x_const=0 alu=alu_sub y=1 z=1 ]
+        [ x_const=0 alu=alu_sub y=2 z=2 ]
+mul_p:  [ x=1 alu=alu_mul0 y=2 z=3 ]
+        [ alu=alu_mul1 z=4 ]
+        [ x=3 alu=alu_add y=4 z=rg_stk return ]
+mul_pn: [ x_const=0 alu=alu_sub y=2 z=2 ]
+mul_n:  [ x=1 alu=alu_mul0 y=2 z=3 ]
+        [ alu=alu_mul1 z=4 ]
+        [ x=3 alu=alu_add y=4 z=4 ]
+        [ x_const=0 alu=alu_sub y=4 z=rg_stk return ]
+mul_xp: [ goto=mul_p ]
+mul_np: [ x_const=0 alu=alu_sub y=1 z=1 ]
+        [ goto=mul_n ]
+
+DIV:    [ x=rg_stk z=2 call=div ]
+        [ x=1 flag=flag_not_z ]
+        [ x=5 z=rg_stk goto=trap ]
+        [ x=2 alu=alu_and y=4 flag=flag_z ]
+        [ goto=ret ]
+        [ x=rg_stk alu=alu_sub y_const=1 z=rg_stk return ]
+
+div:    // r2 - X, r3 - Y, return r1 - trap-no, r2 - REM, r3 - Y, r4 - sign(X/Y), r5 - QUOT
+        [ x=2 flag=flag_p ]
+        [ x=4 alu=alu_xor y=4 z=4 goto=div1 ]
+        [ x_const=0 alu=alu_sub y=2 z=2 ]
+        [ x=4 alu=alu_not_x z=4 ]
+div1:   [ x=4 z=rg_stk ]
+        [ x=3 z=rg_stk flag=flag_p ]
+        [ goto=div2 ]
+        [ x_const=0 alu=alu_sub y=3 z=3 ]
+        [ x=4 alu=alu_not_x z=4 ]
+div2:   [ x_const=1 z=1 ]
+        [ x_const=0 z=5 ]
+div3:   [ x=3 alu=alu_add y=3 z=3 flag=flag_z ]
+        [ x=3 alu=alu_sub y=2 flag=flag_c goto=div7 ]
+        [ x=1 alu=alu_add y=1 z=1 goto=div3 ]
+div4:   [ x=2 alu=alu_sub y=3 flag=flag_c ]
+        [ goto=div6 ]
+        [ x=2 alu=alu_sub y=3 z=2 ]
+        [ x=5 alu=alu_add y=1 z=5 ]
+div6:   [ x=1 alu=alu_shr z=1 flag=flag_not_c ]
+        [ x=3 alu=alu_shr z=3 goto=div4 ]
+        // r1 = 0, r4 - sign(X/Y)
+        [ x=4 flag=flag_z ]
+        [ goto=div8 ]
+        [ x_const=0 alu=alu_sub y=5 z=5 ]
+div8:   [ x=rg_stk z=3 ]
+        [ x=rg_stk flag=flag_z ]
+        [ goto=div9 ]
+        [ x_const=0 alu=alu_sub y=2 z=2 ]
+div9:   [ x_const=0x00 z=1 return ]
+div7:   [ x=rg_stk z=3 ]
+        [ x=rg_stk z=4 ]
+        [ x_const=0x41 z=1 return ]
+
+
+SHR:    [ x=rg_stk z=1 flag=flag_z goto=shr1 ]
+        [ x=2 flag=flag_p goto=shr1 ]
+        [ goto=shr2 ]
+        // shift left, r2 < 0
+        [ x=2 alu=alu_add y_const=0x20 flag=flag_c ]
+        [ x=1 alu=alu_ror_xy y=2 z=1 goto=shr3 ]
+        [ x_const=0 z=rg_stk return ]
+shr3:   // shift left, r2 > -32, r2 < 0
+        [ x_const=1 alu=alu_ror_xy y=2 z=3 ]
+        [ x=3 alu=alu_sub y_const=1 z=3 ]
+        [ x=1 alu=alu_bic y=3 z=rg_stk return ]
+shr2:   // shift right
+        [ x=2 alu=alu_sub y_const=0x20 flag=flag_c ]
+        [ x=1 flag=flag_p goto=shr4 ]
+        [ x=1 alu=alu_xor y=1 z=1 goto=shr1 ]
+        [ x=1 alu=alu_not_x z=rg_stk return ]
+shr4:   // less then 32 bits
+        [ x=1 alu=alu_ror_xy y=2 z=1 goto=shr5 ]
+        // negative X
+        [ x_const=1 alu=alu_ror_xy y=2 z=3 ]
+        [ x=3 alu=alu_sub y_const=1 z=3 ]
+        [ x=3 alu=alu_not_x z=3 ]
+        [ x=1 alu=alu_or y=3 z=rg_stk return ]
+shr5:   // positive X
+        [ x_const=1 alu=alu_ror_xy y=2 z=3 ]
+        [ x=3 alu=alu_sub y_const=1 z=3 ]
+        [ x=1 alu=alu_and y=3 z=rg_stk return ]
+shr1:   [ x=1 z=rg_stk return ]
+
+IO6:    [ x_io alu=alu_add y=rg_stk z=1 ]
+        [ mem_read=0x10 x=1 z=rg_stk return ]
+
+IO7:    [ x=rg_stk z=2 ]
+        [ x_io alu=alu_add y=rg_stk z=1 ]
+        [ mem_write=0x10 x=1 y=2 return ]
+
+fp_unpack:
+        // return:
+        //   r1 - (m1 << 2) | 0x02000000
+        //   r2 - (m2 << 2) | 0x02000000
+        //   r3 - e1
+        //   r4 - e2
+        //   r5 - s1
+        //   r6 - s2
+        [ x=rg_stk alu=alu_rol_xy y_const=1 z=2 ]
+        [ x=rg_stk alu=alu_rol_xy y_const=1 z=1 ]
+        // unpack X
+        [ x_const=1 z=7 ]
+        [ alu=alu_add_xb y_const=3 ]
+        [ x=1 alu=alu_lxb_nc z=3 flag=flag_not_z ]
+        [ goto=fp_up1 ]
+        [ x_const=0 z=7 ]
+        [ x_const=1 z=3 ]
+fp_up1: [ x=1 alu=alu_sxb y=7 z=1 ]
+        [ x=1 alu=alu_and y_const=1 z=5 ]
+        [ x=1 alu=alu_bic y_const=1 z=1 ]
+        [ x=1 alu=alu_add y=1 z=1 ]
+fp_unpack_y:
+        // unpack Y
+        [ x_const=1 z=7 ]
+        [ alu=alu_add_xb y_const=3 ]
+        [ x=2 alu=alu_lxb_nc z=4 flag=flag_not_z ]
+        [ goto=fp_up2 ]
+        [ x_const=0 z=7 ]
+        [ x_const=1 z=4 ]
+fp_up2: [ x=2 alu=alu_sxb y=7 z=2 ]
+        [ x=2 alu=alu_and y_const=1 z=6 ]
+        [ x=2 alu=alu_bic y_const=1 z=2 ]
+        [ x=2 alu=alu_add y=2 z=2 return ]
+
+fp_pack_0:
+        [ x_const=0 z=1 ]
+fp_pack:// r1 - m
+        // r3 - e, if m#0 then e must be >= 0
+        // r5 - s
+        [ x=1 flag=flag_not_z ]
+        [ goto=fp_pk1 ]
+fp_pk2: [ x=1 alu=alu_or y=5 z=1 ]
+        [ x=1 alu=alu_ror_xy y_const=1 z=1 ]
+        [ x=1 z=rg_stk return ]
+fp_pk1: [ x_const=0 z=7 ]
+        [ x=7 alu=alu_add_xb y_const=3 ]
+        [ x=7 alu=alu_sxb y_const=0x02 z=7 ]
+        [ x=7 alu=alu_add y=7 z=8 ]
+        // r7 - 0x02000000, r8 - 0x04000000
+fp_pk4: [ x=1 alu=alu_sub y=8 flag=flag_c ]
+        [ goto=fp_pk9 ]
+        [ x=3 alu=alu_add y_const=1 z=3 ]
+        [ x=1 alu=alu_shrs z=1 goto=fp_pk4 ]
+fp_pk9: [ x=3 flag=flag_p ]
+        [ goto=fp_pk10 ]
+        [ x=3 alu=alu_add y_const=1 z=3 ]
+        [ x=1 alu=alu_shrs z=1 goto=fp_pk9 ]
+fp_pk10:[ x=3 flag=flag_not_z ]
+        [ goto=fp_pk3 ]
+        [ x=3 alu=alu_add y_const=1 z=3 ]
+        [ x=1 alu=alu_shrs z=1 ]
+fp_pk3: [ x=1 alu=alu_sub y=7 flag=flag_not_c ]
+        [ goto=fp_pk5 ]
+        [ x=3 alu=alu_sub y_const=1 flag=flag_z ]
+        [ goto=fp_pk5 ]
+        [ x=3 alu=alu_sub y_const=1 z=3 ]
+        [ x=1 alu=alu_add y=1 z=1 goto=fp_pk3 ]
+fp_pk5: // rounding
+        [ x=1 alu=alu_and y_const=4 flag=flag_z ]
+        [ goto=fp_pk8 ]
+        [ x=1 alu=alu_add y_const=1 z=1 ]
+fp_pk8: [ x=1 alu=alu_add y_const=1 z=1 ]
+        [ x=1 alu=alu_sub y=8 flag=flag_c ]
+        [ goto=fp_pk6 ]
+        [ x=3 alu=alu_add y_const=1 z=3 ]
+        [ x=1 alu=alu_shrs z=1 goto=fp_pk5 ]
+        // end rounding
+fp_pk6: [ x=3 alu=alu_sub y_const=0xff flag=flag_not_c ]
+        [ x=1 alu=alu_sub y=7 flag=flag_not_c goto=fp_trap-42 ]
+        [ goto=fp_pk7 ]
+        [ x_const=0 z=3 ]
+fp_pk7: [ x=1 alu=alu_shr z=1 ]
+        [ x=1 alu=alu_bic y_const=1 z=1 flag=flag_z ]
+        [ goto=fp_trap-43 ]
+        [ alu=alu_add_xb y_const=3 ]
+        [ x=1 alu=alu_sxb y=3 z=1 goto=fp_pk2 ]
+
+fp_trap-nan:
+        [ alu=alu_y_xb0 y_const=0x00 z=1 ]
+        [ x=1 alu=alu_sxb y_const=0x00 z=1 ]
+        [ x=1 alu=alu_sxb y_const=0xc0 z=1 ]
+        [ x=1 alu=alu_sxb y_const=0xff z=rg_stk ]
+        [ x_const=0x42 z=1 ]
+        [ goto=trap ]
+
+fp_trap-42:
+        [ alu=alu_add_xb y_const=3 ]
+        [ x=5 alu=alu_sxb y_const=0xff z=1 ]
+        [ x=1 alu=alu_ror_xy y_const=1 z=1 ]
+        [ x=1 z=rg_stk ]
+        [ x_const=0x42 z=1 ]
+        [ goto=trap ]
+
+fp_trap-43:
+        [ x=5 alu=alu_ror_xy y_const=1 z=rg_stk ]
+        [ x_const=0x43 z=1 ]
+        [ goto=trap ]
+
+FSUB:   [ call=FNEG ]
+FADD:   [ call=fp_unpack ]
+        [ x=2 flag=flag_z ]
+        [ x=3 alu=alu_sub y=4 z=7 flag=flag_not_c goto=fadd7 ]
+        [ x=4 alu=alu_sub y=3 z=8 goto=fadd1 ]
+        [ x=8 alu=alu_sub y_const=0x1a flag=flag_c ]
+        [ goto=fadd4 ]
+        [ x=2 z=1 ]
+        [ x=4 z=3 ]
+        [ x=6 z=5 goto=fp_pack ]
+fadd4:  [ x=8 alu=alu_sub y_const=1 z=8 flag=flag_not_z ]
+        [ x=1 alu=alu_shr z=1 goto=fadd4 ]
+        [ x=4 z=3 goto=fadd2 ]
+fadd1:  // e1 >= e2
+        [ x=7 alu=alu_sub y_const=0x1a flag=flag_not_c ]
+        [ x=7 flag=flag_z goto=fp_pack ]
+        [ goto=fadd2 ]
+fadd3:  [ x=7 alu=alu_sub y_const=1 z=7 flag=flag_not_z ]
+        [ x=2 alu=alu_shr z=2 goto=fadd3 ]
+fadd2:  // now e1 = e2
+        [ x=5 flag=flag_z ]
+        [ goto=fadd5 ]
+        [ x_const=0 alu=alu_sub y=1 z=1 ]
+fadd5:  [ x=6 flag=flag_z ]
+        [ goto=fadd6 ]
+        [ x_const=0 alu=alu_sub y=2 z=2 ]
+fadd6:  [ x=1 alu=alu_add y=2 z=1 flag=flag_p ]
+        [ x=5 alu=alu_neq y=5 z=5 goto=fp_pack ]
+        [ x_const=0 alu=alu_sub y=1 z=1 ]
+        [ x=5 alu=alu_equ y=5 z=5 goto=fp_pack ]
+fadd7:  [ x=1 flag=flag_not_z ]
+        [ goto=fp_pack ]
+        [ x=5 alu=alu_and y=6 z=5 goto=fp_pack ]
+
+FMUL:   [ call=fp_unpack ]
+        [ x=5 alu=alu_xor y=6 z=5 ]
+        [ x=1 flag=flag_z ]
+        [ x=2 flag=flag_z goto=fp_pack ]
+        [ goto=fp_pack_0 ]
+        [ x=3 alu=alu_add y=4 z=3 ]
+        [ x=3 alu=alu_sub y_const=0x98 z=3 ]
+        [ x_const=0 z=8 ]
+        [ x=8 alu=alu_add_xb y_const=3 ]
+        [ x=8 alu=alu_sxb y_const=0x02 z=8 ]
+        [ x=1 z=7 ]
+        [ x_const=0 z=1 ]
+        // main loop
+fmul1:  [ x=2 alu=alu_shr z=2 flag=flag_not_c ]
+        [ goto=fmul2 ]
+        [ x=1 alu=alu_add y=7 z=1 ]
+fmul2:  [ x=2 flag=flag_z]
+        [ x=7 alu=alu_sub y=8 flag=flag_not_c goto=fp_pack ]
+        [ goto=fmul6 ]
+        [ x=7 alu=alu_add y=7 z=7 goto=fmul1 ]
+fmul6:  [ x=3 alu=alu_add y_const=1 z=3 ]
+        [ x=1 alu=alu_shr z=1 goto=fmul1 ]
+
+FDIV:   [ call=fp_unpack ]
+        [ x=5 alu=alu_xor y=6 z=5 ]
+        [ x=2 flag=flag_z ]
+        [ x=1 flag=flag_z goto=fdiv6 ]
+        [ goto=fp_pack ]
+        [ x=3 alu=alu_sub y=4 z=3 ]
+        [ x=3 alu=alu_add y_const=0x7d z=3 ]
+        [ x_const=0 z=8 ]
+        [ x=8 alu=alu_add_xb y_const=3 ]
+        [ x=8 alu=alu_sxb y_const=0x02 z=8 ]
+fdiv3:  [ x=1 alu=alu_sub y=8 flag=flag_not_c ]
+        [ goto=fdiv4 ]
+        [ x=3 alu=alu_sub y_const=1 z=3 ]
+        [ x=1 alu=alu_add y=1 z=1 goto=fdiv3 ]
+fdiv4:  [ x=2 alu=alu_sub y=8 flag=flag_not_c ]
+        [ goto=fdiv5 ]
+        [ x=3 alu=alu_add y_const=1 z=3 ]
+        [ x=2 alu=alu_add y=2 z=2 goto=fdiv4 ]
+fdiv5:  [ x=1 z=7 ]
+        [ x_const=0 z=1 ]
+        [ x_const=0x1c z=8 ]
+fdiv1:  [ x=7 alu=alu_sub y=2 flag=flag_c ]
+        [ x=1 alu=alu_add y=1 z=1 goto=fdiv2 ]
+        [ x=7 alu=alu_sub y=2 z=7 ]
+        [ x=1 alu=alu_add y_const=1 z=1 ]
+fdiv2:  [ x=8 alu=alu_sub y_const=1 z=8 flag=flag_not_z ]
+        [ x=7 alu=alu_add y=7 z=7 flag=flag_z goto=fdiv1 ]
+        [ goto=fp_pack ]
+        [ x=1 alu=alu_or y_const=1 z=1 ]
+        [ goto=fp_pack ]
+fdiv6:  [ goto=fp_trap-nan ]
+        [ goto=fp_trap-42 ]
+
+FCMP:   [ x=rg_stk z=2 ]
+        [ x=rg_stk z=1 ]
+        [ x_const=1 alu=alu_ror_xy y_const=1 z=3 ]
+        [ x=1 alu=alu_bic y=3 z=5 ]
+        [ x=2 alu=alu_bic y=3 z=6 ]
+        [ x=5 alu=alu_geq y=6 z=3 ]
+        [ x=5 alu=alu_leq y=6 z=4 ]
+        [ x=5 flag=flag_not_z ]
+        [ goto=fcmp1 ]
+        [ x_const=0 z=3 ]
+fcmp1:  [ x=6 flag=flag_not_z ]
+        [ goto=fcmp2 ]
+        [ x_const=0 z=4 ]
+fcmp2:  [ x=1 flag=flag_p ]
+        [ goto=fcmp3 ]
+        [ x_const=0 alu=alu_sub y=3 z=3 ]
+fcmp3:  [ x=2 flag=flag_p ]
+        [ goto=fcmp4 ]
+        [ x_const=0 alu=alu_sub y=4 z=4 ]
+fcmp4:  [ x=3 z=rg_stk ]
+        [ x=4 z=rg_stk return ]
+
+FABS:   [ x_const=1 alu=alu_ror_xy y_const=1 z=1 ]
+        [ x=rg_stk alu=alu_bic y=1 z=rg_stk return ]
+
+FNEG:   [ x_const=1 alu=alu_ror_xy y_const=1 z=1 ]
+        [ x=rg_stk alu=alu_xor y=1 z=rg_stk return ]
+
+FFCT:   [ alu=alu_y y_imm8 z=1 flag=flag_z ]
+        [ goto=ffct_float ]
+        [ x=1 alu=alu_sub y_const=1 flag=flag_z ]
+        [ goto=ffct_trunc ]
+        [ x=rg_pc alu=alu_sub y_const=2 z=rg_pc ]
+        [ goto=trap-7 ]
+ffct_float:
+        [ x=rg_stk z=1 ]
+        [ x_const=0x98 z=3 ]
+        [ x=1 flag=flag_p ]
+        [ x=5 alu=alu_neq y=5 z=5 goto=fp_pack ]
+        [ x_const=0 alu=alu_sub y=1 z=1 ]
+        [ x=5 alu=alu_equ y=5 z=5 goto=fp_pack ]
+ffct_trunc:
+        [ x=rg_stk alu=alu_rol_xy y_const=1 z=2 ]
+        [ call=fp_unpack_y ]
+        [ x=4 alu=alu_sub y_const=0x7f flag=flag_not_c ]
+        [ goto=ff_tr1 ]
+        [ x_const=0 z=2 ]
+ff_tr4: [ x=2 z=rg_stk return ]
+ff_tr1: [ x=4 alu=alu_sub y_const=0x98 flag=flag_not_c ]
+        [ goto=ff_tr2 ]
+        [ x=4 alu=alu_add y_const=1 z=4 ]
+        [ x=2 alu=alu_shr z=2 goto=ff_tr1 ]
+ff_tr2: [ x=4 alu=alu_sub y_const=0x98 flag=flag_z ]
+        [ goto=ff_tr3 ]
+        [ x=4 alu=alu_sub y_const=1 z=4 ]
+        [ x=2 alu=alu_add y=2 z=2 flag=flag_p ]
+        [ goto=ff_tr2 ]
+        [ x=6 alu=alu_ror_xy y_const=1 z=2 ]
+        [ x=2 z=rg_stk goto=trap-41 ]
+ff_tr3: [ x=6 flag=flag_z ]
+        [ goto=ff_tr4 ]
+        [ x_const=0 alu=alu_sub y=2 z=2 ]
+        [ goto=ff_tr4 ]
+
+ABS:    [ goto=abs1 ]
+        [ x_const=0 alu=alu_sub y=1 z=rg_stk return ]
+abs1:   [ x=1 z=rg_stk return ]
+
+IN:     [ x=rg_stk z=2 ]
+        [ x_const=1 alu=alu_rol_xy y=2 z=1 ]
+        [ x=2 alu=alu_sub y_const=0x20 flag=flag_not_c ]
+        [ x=1 alu=alu_and y=3 z=1 goto=in3 ]
+        [ x_const=0 alu=alu_neq y=1 z=rg_stk return ]
+in3:    [ x_const=0 z=rg_stk return ]
+
+BIT:    [ x=2 alu=alu_sub y_const=0x20 flag=flag_not_c ]
+        [ goto=trap-4a-push-r2 ]
+        [ x_const=1 alu=alu_rol_xy y=2 z=rg_stk return ]
+
+MOD:    [ x=rg_stk z=2 call=div ]
+        [ x=1 flag=flag_not_z ]
+        [ x=2 z=rg_stk goto=trap ]
+        [ x=2 alu=alu_and y=4 flag=flag_z ]
+        [ goto=ret ]
+        [ x=rg_stk alu=alu_add y=3 z=rg_stk return ]
+
+LODFV:  [ x=rg_stk z=5 call=restore_stack ]
+        [ x=5 z=rg_stk return ]
+
+STOFV:  [ x=rg_stk z=5 call=save_stack ]
+        [ mem_write=0 x=rg_s y=5 ]
+        [ x=rg_s alu=alu_add y_const=1 z=rg_s return ]
+
+CPCOP:  [ x=rg_stk alu=alu_shr z=1 ]
+        [ x=1 alu=alu_shr z=rg_stk ]
+PCOP:   [ x=rg_stk alu=alu_add y_const=1 z=1 ]
+        [ x=rg_l alu=alu_add y_imm8 z=2 ]
+        [ mem_write=0 x=2 y=rg_s ]
+        [ x=rg_stk z=2 ]
+cpcop1: [ mem_read=0 x=2 z=3 ]
+        [ mem_write=0 x=rg_s y=3 ]
+        [ x=rg_s alu=alu_add y_const=1 z=rg_s ]
+        [ x=2 alu=alu_add y_const=1 z=2 ]
+        [ x=1 alu=alu_sub y_const=1 z=1 flag=flag_not_z ]
+        [ goto=cpcop1 ]
+        [ return ]
+
+ENTC:   [ alu=alu_y_xb0 y_imm8 z=1 ]
+        [ x=1 alu=alu_sxb y_imm8 z=1 ]
+        [ x=rg_pc alu=alu_add y=1 z=rg_pc ]
+        [ x=rg_stk z=1 call=return-jump2 ]
+        [ alu=alu_y_xb0 y_imm8 z=2 ]
+        [ x=2 alu=alu_sxb y_imm8 z=2 ]
+        [ alu=alu_y_xb0 y_imm8 z=3 ]
+        [ x=3 alu=alu_sxb y_imm8 z=3 ]
+        // r2 - low, r3 - high
+        [ x=3 alu=alu_sub y=2 z=4 ]
+        [ x=4 alu=alu_add y=4 z=4 ]
+        [ x=4 alu=alu_add y_const=4 z=4 ]
+        [ x=4 alu=alu_add y=rg_pc z=4 ]
+        [ mem_write=0 x=rg_s y=4 ]
+        [ x=rg_s alu=alu_add y_const=1 z=rg_s ]
+        [ x=1 alu=alu_geq y=2 z=4 ]
+        [ x=1 alu=alu_leq y=3 z=5 ]
+        [ x=4 alu=alu_and y=5 flag=flag_z ]
+        [ x=1 alu=alu_sub y=2 z=1 goto=entc1 ]
+        [ x=1 alu=alu_add y_const=1 z=1 ]
+        [ x=1 alu=alu_add y=1 z=1 ]
+        [ x=rg_pc alu=alu_add y=1 z=rg_pc call=return-jump1 ]
+entc1:  [ alu=alu_y_xb0 y_imm8 z=1 ]
+        [ x=1 alu=alu_sxb y_imm8 z=1 ]
+        [ x=rg_pc alu=alu_sub y=1 z=rg_pc goto=return-jump ]
+ 
+XIT:    [ x=rg_s alu=alu_sub y_const=1 z=rg_s ]
+        [ mem_read=0 x=rg_s z=rg_pc ]
+        [ goto=return-jump1 ]
+
+ADDPC:  [ x=1 alu=alu_sxb y_imm8 z=1 ]
+        [ x=rg_pc alu=alu_add y=1 z=1 ]
+        [ mem_write=0 x=rg_s y=1 ]
+        [ x=rg_s alu=alu_add y_const=1 z=rg_s return ]
+
+ORJMP:  [ goto=JSF ]
+        [ x=rg_stk y_imm8 goto=ret ]
+
+MOVE:   // TODO: MOVE is not interruptable
+        [ x=rg_stk z=2 ]
+        [ x=3 alu=alu_and y_const=3 z=4 flag=flag_z ]
+        [ x=rg_stk z=1 goto=move1 ]
+move2:  [ mem_read=0  x=2 z=5 ]
+        [ mem_write=0 x=1 y=5 ]
+        [ x=1 alu=alu_add y_const=1 z=1 ]
+        [ x=2 alu=alu_add y_const=1 z=2 ]
+        [ x=4 alu=alu_sub y_const=1 z=4 flag=flag_not_z ]
+        [ goto=move2 ]
+move1:  [ x=3 alu=alu_bic y_const=3 z=4 flag=flag_z ]
+        [ goto=ret ]
+move4:  [ mem_read=0  x=2 z=5 ]
+        [ mem_write=0 x=1 y=5 ]
+        [ mem_read=1  x=2 z=5 ]
+        [ mem_write=1 x=1 y=5 ]
+        [ mem_read=2  x=2 z=5 ]
+        [ mem_write=2 x=1 y=5 ]
+        [ mem_read=3  x=2 z=5 ]
+        [ mem_write=3 x=1 y=5 ]
+        [ x=1 alu=alu_add y_const=4 z=1 ]
+        [ x=2 alu=alu_add y_const=4 z=2 ]
+        [ x=4 alu=alu_sub y_const=4 z=4 flag=flag_not_z ]
+        [ goto=move4 ]
+        [ return ]
+
+CHKNIL: // TODO: CHKNIL is too slow
+        [ x=1 alu=alu_sub y_nil flag=flag_not_c ]
+        [ x=1 z=rg_stk goto=trap-3 ]
+        [ return ]
+
+LSTA:   [ x=2 alu=alu_sxb y_imm8 z=2 ]
+        [ mem_read=1 x=rg_g z=1 ]
+        [ x=1 alu=alu_add y=2 z=rg_stk return ]
+
+COMP:   [ x=rg_stk z=1 alu=alu_add_xb y_const=0 ]
+        [ x=6 z=rg_stk ]
+comp2:  [ mem_read=0 x=1 z=5 ]
+        [ mem_read=0 x=2 z=6 ]
+        [ x=1 alu=alu_add y_const=1 z=1 ]
+        [ x=2 alu=alu_add y_const=1 z=2 ]
+        [ x=5 alu=alu_lxb_nc z=3 flag=flag_z ]
+        [ x=6 alu=alu_lxb z=4 goto=comp1 ]
+        [ x=3 alu=alu_xor y=4 flag=flag_not_z ]
+        [ goto=comp1 ]
+        [ x=5 alu=alu_lxb_nc z=3 flag=flag_z ]
+        [ x=6 alu=alu_lxb z=4 goto=comp1 ]
+        [ x=3 alu=alu_xor y=4 flag=flag_not_z ]
+        [ goto=comp1 ]
+        [ x=5 alu=alu_lxb_nc z=3 flag=flag_z ]
+        [ x=6 alu=alu_lxb z=4 goto=comp1 ]
+        [ x=3 alu=alu_xor y=4 flag=flag_not_z ]
+        [ goto=comp1 ]
+        [ x=5 alu=alu_lxb_nc z=3 flag=flag_z ]
+        [ x=6 alu=alu_lxb z=4 goto=comp1 ]
+        [ x=3 alu=alu_xor y=4 flag=flag_z ]
+        [ goto=comp2 ]
+comp1:  [ x=rg_stk z=6 ]
+        [ x=3 z=rg_stk ]
+        [ x=4 z=rg_stk return ]
+
+GB:     [ x=rg_l z=1 ]
+        [ alu=alu_y y_imm8 z=2 flag=flag_z ]
+        [ goto=gb1 ]
+gb2:    [ mem_read=0 x=1 z=1 ]
+        [ x=2 alu=alu_sub y_const=1 z=2 flag=flag_not_z ]
+        [ goto=gb2 ]
+gb1:    [ x=1 z=rg_stk return ]
+
+CHK:    [ x=rg_stk z=2 ]
+        [ x=rg_stk z=1 ]
+        [ x=1 alu=alu_geq y=2 z=4 ]
+        [ x=1 alu=alu_leq y=3 z=5 ]
+        [ x=4 alu=alu_and y=5 flag=flag_z ]
+        [ x=1 z=rg_stk goto=trap-4a ]
+        [ return ]
+
+CHKZ:   [ x=rg_stk z=1 ]
+        [ x=1 alu=alu_geq y_const=0 z=4 ]
+        [ x=1 alu=alu_leq y=2 z=5 ]
+        [ x=4 alu=alu_and y=5 flag=flag_z ]
+        [ x=1 z=rg_stk goto=trap-4a ]
+        [ return ]
+
+ALLOC:  [ x=rg_s z=rg_stk ]
+        [ x=rg_s alu=alu_add y=1 z=rg_s return ]
+
+RTN:    [ x=1 flag=flag_p ]
+        [ x=rg_l z=rg_s goto=rtn1 ]
+        [ mem_read=0 x=rg_s z=rg_g ]
+        [ mem_read=0 x=rg_g z=rg_f ]
+rtn1:   [ x=1 z=rg_pc ]
+        [ mem_read=1 x=rg_s z=rg_l ]
+        [ goto=return-jump2 ]
+        
+CX:     [ x=rg_g alu=alu_sub y_imm8 z=1 ]
+        [ x=1 alu=alu_sub y_const=1 z=1 ]
+        [ mem_read=0 x=1 z=1 ]
+        [ alu=alu_y y_imm8 z=2 ]
+cx1:    // r1 - adr(new G), r2 - proc no
+        [ x_const=1 alu=alu_ror_xy y_const=1 z=3 ]
+        [ x=rg_pc alu=alu_or y=3 z=3 ]
+        [ mem_write=0 x=rg_s y=rg_g ]
+        [ mem_write=1 x=rg_s y=rg_l ]
+        [ mem_write=2 x=rg_s y=3 ]
+        [ x=rg_s z=rg_l ]
+        [ x=rg_s alu=alu_add y_const=4 z=rg_s ]
+        [ mem_read=0 x=1 z=rg_g ]
+cx2:    [ mem_read=0 x=rg_g z=rg_f ]
+        [ x=rg_f alu=alu_add y=2 z=2 ]
+        [ mem_read=0 x=2 z=rg_pc ]
+        [ goto=return-jump1 ]
+
+CI:     [ x=rg_f alu=alu_add y_imm8 z=1 ]
+        [ mem_write=0 x=rg_s y=rg_stk ]
+        [ goto=cl_m ]
+
+CF:     [ x=rg_s alu=alu_sub y_const=1 z=rg_s ]
+        [ mem_read=0 x=rg_s z=1 ]
+        [ x_const=0 z=3 ]
+        [ x=3 alu=alu_add_xb y_const=3 ]
+        [ x=1 alu=alu_lxb_nc z=2 ]
+        [ x=1 alu=alu_sxb y=3 z=1 goto=cx1 ]
+
+cl_n:   [ mem_write=0 x=rg_s y=rg_l ]
+cl_m:   [ mem_write=2 x=rg_s y=rg_pc ]
+        [ mem_read=0 x=1 z=rg_pc ]
+        [ mem_write=1 x=rg_s y=rg_l ]
+        [ x=rg_s z=rg_l ]
+        [ x=rg_s alu=alu_add y_const=4 z=rg_s return ]
+
+INCL:   [ x=2 alu=alu_bic y_const=0x1f z=3 ]
+        [ x=3 alu=alu_ror_xy y_const=5 z=3 ]
+        [ x=rg_stk alu=alu_add y=3 z=3 ]
+        [ x_const=1 alu=alu_rol_xy y=2 z=1 ]
+        [ mem_read=0 x=3 z=4 ]
+        [ x=4 alu=alu_or y=1 z=4 ]
+        [ mem_write=0 x=3 y=4 return ]
+
+EXCL:   [ x=2 alu=alu_bic y_const=0x1f z=3 ]
+        [ x=3 alu=alu_ror_xy y_const=5 z=3 ]
+        [ x=rg_stk alu=alu_add y=3 z=3 ]
+        [ x_const=1 alu=alu_rol_xy y=2 z=1 ]
+        [ mem_read=0 x=3 z=4 ]
+        [ x=4 alu=alu_bic y=1 z=4 ]
+        [ mem_write=0 x=3 y=4 return ]
+
+INL:    [ x=rg_stk z=2 ]
+        [ x=rg_stk z=1 ]
+        [ x=1 alu=alu_sub y=3 flag=flag_p ]
+        [ goto=inl1 ]
+        [ x_const=0 z=rg_stk return ]
+inl1:   [ x_const=1 alu=alu_rol_xy y=1 z=3 ]
+        [ x=1 alu=alu_bic y_const=0x1f z=1 ]
+        [ x=1 alu=alu_ror_xy y_const=5 z=1 ]
+        [ x=2 alu=alu_add y=1 z=1 ]
+        [ mem_read=0 x=1 z=4 ]
+        [ x=3 alu=alu_and y=4 z=3 ]
+        [ x=3 alu=alu_neq y_const=0 z=rg_stk return ]
+
+QUOT:   [ x=rg_stk z=2 ]
+        [ x_const=1 z=4 ]
+        [ alu=alu_y y_imm8 z=1 flag=flag_z ]
+        [ x=1 alu=alu_sub y=4 z=1 flag=flag_z goto=QUOT-SHRQ ]
+        [ x=1 alu=alu_sub y=4 z=1 flag=flag_z goto=QUOT-QUOT ]
+        [ x=1 alu=alu_sub y=4 z=1 flag=flag_z goto=QUOT-ANDQ ]
+        [ goto=QUOT-REM ]
+        [ x=2 z=rg_stk ]
+        [ x=3 z=rg_stk ]
+        [ x=rg_pc alu=alu_sub y=4 z=rg_pc goto=trap-7 ]
+
+QUOT-SHRQ:
+        [ goto=trap-7 ]
+
+QUOT-QUOT:
+        [ call=div ]
+        [ x=1 flag=flag_not_z ]
+        [ x=5 z=rg_stk goto=trap ]
+        [ return ]
+
+QUOT-ANDQ:
+        [ goto=trap-7 ]
+
+QUOT-REM:
+        [ call=div ]
+        [ x=1 flag=flag_not_z ]
+        [ x=2 z=rg_stk goto=trap ]
+        [ return ]
+
+INC1:   [ mem_read=0 x=1 z=2 ]
+        [ x=2 alu=alu_add y_const=1 z=2 ]
+        [ mem_write=0 x=1 y=2 return ]
+
+DEC1:   [ mem_read=0 x=1 z=2 ]
+        [ x=2 alu=alu_sub y_const=1 z=2 ]
+        [ mem_write=0 x=1 y=2 return ]
+
+INC:    [ x=rg_stk z=1 ]
+        [ mem_read=0 x=1 z=3 ]
+        [ x=3 alu=alu_add y=2 z=3 ]
+        [ mem_write=0 x=1 y=3 return ]
+
+DEC:    [ x=rg_stk z=1 ]
+        [ mem_read=0 x=1 z=3 ]
+        [ x=3 alu=alu_sub y=2 z=3 ]
+        [ mem_write=0 x=1 y=3 return ]
+
+STOT:   [ mem_write=0 x=rg_s y=rg_stk ]
+        [ x=rg_s alu=alu_add y_const=1 z=rg_s return ]
+
+LODT:   [ x=rg_s alu=alu_sub y_const=1 z=rg_s ]
+        [ mem_read=0 x=rg_s z=rg_stk return ] 
+
+LXA:    [ alu=alu_mul1 z=2 ]
+        [ x=1 alu=alu_add y=2 z=2 ]
+        [ x=rg_stk alu=alu_add y=2 z=rg_stk return ]
+
+LPC:    [ alu=alu_y y_imm8 z=2 ]
+        [ x=rg_g alu=alu_sub y=1 z=1 ]
+        [ x=1 alu=alu_sub y_const=1 z=1 ]
+        [ mem_read=0 x=1 z=1 ]
+        [ alu=alu_add_xb y_const=3 ]
+        [ x=1 alu=alu_sxb y=2 z=rg_stk return ]
+
+PDX:    // r2 - index
+        [ x=rg_stk z=1 ] // descriptor address
+        [ mem_read=0 x=1 z=3 ] // array address
+        [ mem_read=1 x=1 z=4 ] // array high
+        [ x=3 z=rg_stk ]
+        [ x=2 z=rg_stk ]
+        [ x=2 alu=alu_gtr y=4 z=4 ]
+        [ x=2 alu=alu_lss y_const=0 z=5 ]
+        [ x=4 alu=alu_or y=5 flag=flag_z ]
+        [ goto=ret ]
+        [ goto=trap-4a ]
+
+SWAP:   [ x_swap z=rg_stk return ]
+
+LPA:    [ x=1 alu=alu_sub y_const=1 z=rg_stk return ]
+
+LPW:    [ x=1 alu=alu_sub y_const=1 z=1 ]
+        [ mem_read=0 x=1 z=rg_stk return ]
+
+SPW:    [ x=1 alu=alu_sub y_const=1 z=1 ]
+        [ mem_write=0 x=1 y=rg_stk return ]
+
+SSWU:   [ x=rg_stk z=1 ]
+        [ mem_write=0 x=1 y=2 ]
+        [ x=2 z=rg_stk return ]
+
+RCHK:   [ x=rg_stk z=2 ]
+        [ x=rg_stk z=1 ]
+        [ x=1 alu=alu_geq y=2 z=4 ]
+        [ x=1 alu=alu_leq y=3 z=5 ]
+        [ x=4 alu=alu_and y=5 z=rg_stk return ]
+
+RCHZ:   [ x=rg_stk z=1 ]
+        [ x=1 alu=alu_geq y_const=0 z=4 ]
+        [ x=1 alu=alu_leq y=2 z=5 ]
+        [ x=4 alu=alu_and y=5 z=rg_stk return ]
+
+CM:     [ x=rg_s alu=alu_sub y_const=1 z=rg_s ]
+        [ mem_read=0 x=rg_s z=1 ]
+        // r1 - new G, r2 - proc no
+        [ x_const=1 alu=alu_ror_xy y_const=1 z=3 ]
+        [ x=rg_pc alu=alu_or y=3 z=3 ]
+        [ mem_write=0 x=rg_s y=rg_g ]
+        [ mem_write=1 x=rg_s y=rg_l ]
+        [ mem_write=2 x=rg_s y=3 ]
+        [ x=rg_s z=rg_l ]
+        [ x=rg_s alu=alu_add y_const=4 z=rg_s ]
+        [ x=1 z=rg_g goto=cx2 ]
+
+SYS:    [ alu=alu_y y_imm8 z=1 ]
+        [ x=1 alu=alu_sub y_const=0 flag=flag_z ]
+        [ goto=sys0 ]
+        [ x=1 alu=alu_sub y_const=1 flag=flag_z ]
+        [ goto=sys1 ]
+        [ x=1 alu=alu_sub y_const=2 flag=flag_z ]
+        [ goto=sys2 ]
+        [ x=rg_pc alu=alu_sub y_const=1 z=rg_pc ]
+        [ goto=trap-7 ]
+sys0:   [ x_const=7 z=rg_stk return ]
+sys1:   [ x=rg_stk z=1 ]
+DOT:    [ call=print_word ]
+        [ sio_write y_const=0x0d ]
+        [ sio_write y_const=0x0a return ]
+sys2:   [ x_const=0 z=rg_stk return ]
+
+// ===================================================================
+// Kronos-3 VM instruction-set additions (OneChipBook): the xd0.dsk
+// boot chain and OS are built for the vm/int VM -- io0/io1 (inp/out),
+// io2 (disk), wmv, rcmp at the VM's opcode numbers. See DESIGN.md.
+// rg_io is hardwired 0xFFFFF000, so `alu_bic y=rg_io` masks an I/O
+// register number to 12 bits and `alu_or y=rg_io` forms its address in
+// the I/O page (top 4KB, truncates to 0x7Fxxx on the 19-bit bus).
+// ===================================================================
+
+// NOTE: rg_io (0xFFFFF000) is only readable on the X port (DataStorage's
+// Y port serves nil/pc/c_bus only), so the 12-bit mask is built from it
+// with alu_not_x instead of passing it through Y.
+
+// inp(reg): push mem[iopage + (reg & 0xFFF)]
+IO0:    [ x_io alu=alu_not_x z=2 ]            // r2 = 0x00000FFF
+        [ x=rg_stk alu=alu_and y=2 z=1 ]      // r1 = reg & 0xFFF
+        [ x_io alu=alu_or y=1 z=1 ]           // r1 = I/O page address
+        [ mem_read=0 x=1 z=rg_stk return ]
+
+// out(reg, w): mem[iopage + (reg & 0xFFF)] = w
+IO1:    [ x=rg_stk z=3 ]                      // r3 = value
+        [ x_io alu=alu_not_x z=2 ]            // r2 = 0x00000FFF
+        [ x=rg_stk alu=alu_and y=2 z=1 ]      // r1 = reg & 0xFFF
+        [ x_io alu=alu_or y=1 z=1 ]           // r1 = I/O page address
+        [ mem_write=0 x=1 y=3 return ]
+
+// io2: disk (VM DiskOperation). Pops len, adr, sec, dsk, op (top-first) and
+// programs the sd_disk_controller registers at iopage+0x10.. The controller
+// delivers read data one word at a time through its DATA register (NOT by DMA
+// into memory) so the CPU can store each word THROUGH ITS CACHE -- coherent
+// for the later instruction fetches of the code it loads. I/O reads are
+// uncached (address bit31 set via rg_io), so the FLAGS poll always sees the
+// device. r1 holds the running target word address.
+//   FLAGS: bit0 = data word available, bit1 = op done. RESULT pushed at end.
+IO2:    [ mem_write=0x12 x_io y=rg_stk ]      // LEN (bytes)  -- pop len
+        [ x=rg_stk z=1 ]                      // r1 = adr     -- pop adr
+        [ mem_write=0x10 x_io y=rg_stk ]      // SEC          -- pop sec
+        [ mem_write=0x16 x_io y=rg_stk ]      // DSK          -- pop dsk
+        [ mem_write=0x13 x_io y=rg_stk ]      // CMD = op -> start (pop op)
+io2lp:  [ mem_read=0x15 x_io z=2 ]            // r2 = FLAGS
+        [ x=2 alu=alu_and y_const=1 flag=flag_not_z ]  // data available?
+        [ goto=io2drn ]
+        [ x=2 alu=alu_and y_const=4 flag=flag_not_z ]  // wants a word (write)?
+        [ goto=io2fil ]
+        [ x=2 alu=alu_and y_const=2 flag=flag_z ]      // op done?
+        [ goto=io2lp ]                        // none of those: keep polling
+        [ mem_read=0x14 x_io z=rg_stk return ]         // push RESULT, done
+io2drn: [ mem_read=0x17 x_io z=2 ]            // r2 = DATA (consumes the word)
+        [ mem_write=0 x=1 y=2 ]               // mem[adr] = word (cached store)
+        [ x=1 alu=alu_add y_const=1 z=1 ]     // adr := adr + 1
+        [ goto=io2lp ]
+// write direction (op 5), the mirror of io2drn: take the next word from
+// memory and hand it to the controller, which streams it to the card.
+io2fil: [ mem_read=0  x=1 z=2 ]               // r2 = mem[adr]
+        [ mem_write=0x17 x_io y=2 ]           // DATA = word (controller takes it)
+        [ x=1 alu=alu_add y_const=1 z=1 ]     // adr := adr + 1
+        [ goto=io2lp ]
+
+// wmv: word move, overlap-safe (backward when to > from).
+// Dispatch pops sz into r3; here: r2 = from, r1 = to.
+WMV:    [ x=rg_stk z=2 ]
+        [ x=rg_stk z=1 ]
+        [ x=3 flag=flag_z ]
+        [ goto=ret ]                          // sz == 0: nothing to do
+        [ x=1 alu=alu_gtr y=2 z=4 flag=flag_not_z ]
+        [ goto=wmv_bk ]                       // to > from: copy backward
+wmv_fw: [ mem_read=0  x=2 z=5 ]
+        [ mem_write=0 x=1 y=5 ]
+        [ x=1 alu=alu_add y_const=1 z=1 ]
+        [ x=2 alu=alu_add y_const=1 z=2 ]
+        [ x=3 alu=alu_sub y_const=1 z=3 flag=flag_not_z ]
+        [ goto=wmv_fw ]
+        [ return ]
+wmv_bk: [ x=1 alu=alu_add y=3 z=1 ]           // to   += sz-1
+        [ x=2 alu=alu_add y=3 z=2 ]           // from += sz-1
+        [ x=1 alu=alu_sub y_const=1 z=1 ]
+        [ x=2 alu=alu_sub y_const=1 z=2 ]
+wmv_bk2:[ mem_read=0  x=2 z=5 ]
+        [ mem_write=0 x=1 y=5 ]
+        [ x=1 alu=alu_sub y_const=1 z=1 ]
+        [ x=2 alu=alu_sub y_const=1 z=2 ]
+        [ x=3 alu=alu_sub y_const=1 z=3 flag=flag_not_z ]
+        [ goto=wmv_bk2 ]
+        [ return ]
+
+// rcmp: array compare. Dispatch pops sz into r3; r2 = adr, r1 = adr1.
+// Scans until mismatch or sz exhausted; pushes adr1' then adr'.
+RCMP:   [ x=rg_stk z=2 ]
+        [ x=rg_stk z=1 ]
+        [ x=3 flag=flag_z ]
+        [ goto=rcmp0 ]                        // sz == 0: push adr1 twice
+rcmp1:  [ mem_read=0 x=2 z=5 ]
+        [ mem_read=0 x=1 z=6 ]
+        [ x=5 alu=alu_sub y=6 z=7 flag=flag_not_z ]
+        [ goto=rcmp2 ]                        // mismatch
+        [ x=3 alu=alu_sub y_const=1 z=3 flag=flag_z ]
+        [ goto=rcmp2 ]                        // compared all words, equal
+        [ x=1 alu=alu_add y_const=1 z=1 ]
+        [ x=2 alu=alu_add y_const=1 z=2 ]
+        [ goto=rcmp1 ]
+rcmp2:  [ x=1 z=rg_stk ]
+        [ x=2 z=rg_stk return ]
+rcmp0:  [ x=1 z=rg_stk ]
+        [ x=1 z=rg_stk return ]
+
+0x6e0   // interrupt vectors
+int0:   [ x_const=0x0C z=1 ][ goto=trap-enabled ] // console INPUT (DL11)
+        // Retargeted 0x10 -> 0x0C for the Kronos-3 convention this OS is
+        // built for: Kronos3vm.cpp does `Console con(0xFB8, 0x0C)` and
+        // VM.cpp raises Trap(s->ipt()) = 0x0C on console input (0x0D on
+        // output, not used -- our transmit path is never blocked). The
+        // 5.0 value 0x10 was the older RS232 convention, the same class of
+        // mismatch already fixed for the opcode dispatch.
+int1:   [ x_const=0x01 z=1 ][ goto=trap-enabled ] // timer interrupt, TODO change vector to 0x11
+int2:   [ x_const=0x12 z=1 ][ goto=trap-enabled ] // ATA interrupt
+int3:   [ x_const=0x13 z=1 ][ goto=trap-enabled ] // undef
+int4:   [ x_const=0x14 z=1 ][ goto=trap-enabled ] // undef
+int5:   [ x_const=0x15 z=1 ][ goto=trap-enabled ] // undef
+int6:   [ x_const=0x16 z=1 ][ goto=trap-enabled ] // undef
+int7:   [ x_const=0x17 z=1 ][ goto=trap-enabled ] // undef
+0x6f0   // trap vectors
+        [ goto=trap-vec-0 ]
+        [ goto=trap-vec-1 ]
+        [ goto=trap-vec-2 ]
+        [ goto=trap-vec-3 ]
+        [ goto=trap-vec-4 ]
+        [ goto=trap-vec-5 ]
+        [ goto=trap-vec-6 ]
+        [ goto=trap-vec-7 ]
+        [ goto=trap-vec-8 ]
+        [ goto=trap-vec-9 ]
+        [ goto=trap-vec-10 ]
+        [ goto=trap-vec-11 ]
+        [ goto=trap-vec-12 ]
+        [ goto=trap-vec-13 ]
+        [ goto=trap-vec-14 ]
+        [ goto=trap-vec-15 ]
+0x700
+LI0:    [ x_const= 0 z=rg_stk return ]
+        [ x_const= 1 z=rg_stk return ]
+        [ x_const= 2 z=rg_stk return ]
+        [ x_const= 3 z=rg_stk return ]
+        [ x_const= 4 z=rg_stk return ]
+        [ x_const= 5 z=rg_stk return ]
+        [ x_const= 6 z=rg_stk return ]
+        [ x_const= 7 z=rg_stk return ]
+        [ x_const= 8 z=rg_stk return ]
+        [ x_const= 9 z=rg_stk return ]
+        [ x_const=10 z=rg_stk return ]
+        [ x_const=11 z=rg_stk return ]
+        [ x_const=12 z=rg_stk return ]
+        [ x_const=13 z=rg_stk return ]
+        [ x_const=14 z=rg_stk return ]
+        [ x_const=15 z=rg_stk return ]
+        [ alu=alu_y y_imm8 z=rg_stk goto=ret ]
+        [ alu=alu_y_xb0 y_imm8 z=1 goto=LID ]
+        [ alu=alu_y_xb0 y_imm8 z=1 goto=LIW ]
+        [ y_nil alu=alu_y z=rg_stk return ]
+        [ x=rg_l alu=alu_add y_imm8 z=rg_stk goto=ret ]
+        [ x=rg_g alu=alu_add y_imm8 z=rg_stk goto=ret ]
+        [ x=rg_stk alu=alu_add y_imm8 z=rg_stk goto=ret ]
+        [ x=rg_g alu=alu_sub y_imm8 z=1 goto=LEA ]
+        [ x=rg_stk flag=flag_z goto=JLFC ]
+        [ goto=JLF ]
+        [ x=rg_stk flag=flag_z goto=JSFC ]
+JSF:    [ goto=return-jump1 ]
+        [ x=rg_stk flag=flag_z goto=JLBC ]
+        [ goto=JLB ]
+        [ x=rg_stk flag=flag_z goto=JSBC ]
+JSB:    [ goto=return-jump1 ]
+0x720   [ x=rg_l alu=alu_add y_imm8 z=1 goto=LLW ]
+        [ x=rg_g alu=alu_add y_imm8 z=1 goto=LGW ]
+        [ x=rg_g alu=alu_sub y_imm8 z=1 goto=LEW ]
+        [ x=rg_stk alu=alu_add y_imm8 z=1 goto=LSW ]
+        [ mem_read= 4 x=rg_l z=rg_stk return ]
+        [ mem_read= 5 x=rg_l z=rg_stk return ]
+        [ mem_read= 6 x=rg_l z=rg_stk return ]
+        [ mem_read= 7 x=rg_l z=rg_stk return ]
+        [ mem_read= 8 x=rg_l z=rg_stk return ]
+        [ mem_read= 9 x=rg_l z=rg_stk return ]
+        [ mem_read=10 x=rg_l z=rg_stk return ]
+        [ mem_read=11 x=rg_l z=rg_stk return ]
+        [ mem_read=12 x=rg_l z=rg_stk return ]
+        [ mem_read=13 x=rg_l z=rg_stk return ]
+        [ mem_read=14 x=rg_l z=rg_stk return ]
+        [ mem_read=15 x=rg_l z=rg_stk return ]
+0x730   [ x=rg_l alu=alu_add y_imm8 z=1 goto=SLW ]
+        [ x=rg_g alu=alu_add y_imm8 z=1 goto=SGW ]
+        [ x=rg_g alu=alu_sub y_imm8 z=1 goto=SEW ]
+        [ x=rg_stk z=2 goto=SSW ]
+        [ mem_write= 4 x=rg_l y=rg_stk return ]
+        [ mem_write= 5 x=rg_l y=rg_stk return ]
+        [ mem_write= 6 x=rg_l y=rg_stk return ]
+        [ mem_write= 7 x=rg_l y=rg_stk return ]
+        [ mem_write= 8 x=rg_l y=rg_stk return ]
+        [ mem_write= 9 x=rg_l y=rg_stk return ]
+        [ mem_write=10 x=rg_l y=rg_stk return ]
+        [ mem_write=11 x=rg_l y=rg_stk return ]
+        [ mem_write=12 x=rg_l y=rg_stk return ]
+        [ mem_write=13 x=rg_l y=rg_stk return ]
+        [ mem_write=14 x=rg_l y=rg_stk return ]
+        [ mem_write=15 x=rg_l y=rg_stk return ]
+0x740   [ x=rg_stk alu=alu_add_xb y=rg_stk z=1 goto=LXB ]
+        [ x=rg_stk alu=alu_add y=rg_stk z=1 goto=LXW ]
+        [ mem_read= 2 x=rg_g z=rg_stk return ]
+        [ mem_read= 3 x=rg_g z=rg_stk return ]
+        [ mem_read= 4 x=rg_g z=rg_stk return ]
+        [ mem_read= 5 x=rg_g z=rg_stk return ]
+        [ mem_read= 6 x=rg_g z=rg_stk return ]
+        [ mem_read= 7 x=rg_g z=rg_stk return ]
+        [ mem_read= 8 x=rg_g z=rg_stk return ]
+        [ mem_read= 9 x=rg_g z=rg_stk return ]
+        [ mem_read=10 x=rg_g z=rg_stk return ]
+        [ mem_read=11 x=rg_g z=rg_stk return ]
+        [ mem_read=12 x=rg_g z=rg_stk return ]
+        [ mem_read=13 x=rg_g z=rg_stk return ]
+        [ mem_read=14 x=rg_g z=rg_stk return ]
+        [ mem_read=15 x=rg_g z=rg_stk return ]
+0x750   [ x=rg_stk z=3 goto=SXB ]
+        [ x=rg_stk z=2 goto=SXW ]
+        [ mem_write= 2 x=rg_g y=rg_stk return ]
+        [ mem_write= 3 x=rg_g y=rg_stk return ]
+        [ mem_write= 4 x=rg_g y=rg_stk return ]
+        [ mem_write= 5 x=rg_g y=rg_stk return ]
+        [ mem_write= 6 x=rg_g y=rg_stk return ]
+        [ mem_write= 7 x=rg_g y=rg_stk return ]
+        [ mem_write= 8 x=rg_g y=rg_stk return ]
+        [ mem_write= 9 x=rg_g y=rg_stk return ]
+        [ mem_write=10 x=rg_g y=rg_stk return ]
+        [ mem_write=11 x=rg_g y=rg_stk return ]
+        [ mem_write=12 x=rg_g y=rg_stk return ]
+        [ mem_write=13 x=rg_g y=rg_stk return ]
+        [ mem_write=14 x=rg_g y=rg_stk return ]
+        [ mem_write=15 x=rg_g y=rg_stk return ]
+0x760   [ mem_read= 0 x=rg_stk z=rg_stk return ]
+        [ mem_read= 1 x=rg_stk z=rg_stk return ]
+        [ mem_read= 2 x=rg_stk z=rg_stk return ]
+        [ mem_read= 3 x=rg_stk z=rg_stk return ]
+        [ mem_read= 4 x=rg_stk z=rg_stk return ]
+        [ mem_read= 5 x=rg_stk z=rg_stk return ]
+        [ mem_read= 6 x=rg_stk z=rg_stk return ]
+        [ mem_read= 7 x=rg_stk z=rg_stk return ]
+        [ mem_read= 8 x=rg_stk z=rg_stk return ]
+        [ mem_read= 9 x=rg_stk z=rg_stk return ]
+        [ mem_read=10 x=rg_stk z=rg_stk return ]
+        [ mem_read=11 x=rg_stk z=rg_stk return ]
+        [ mem_read=12 x=rg_stk z=rg_stk return ]
+        [ mem_read=13 x=rg_stk z=rg_stk return ]
+        [ mem_read=14 x=rg_stk z=rg_stk return ]
+        [ mem_read=15 x=rg_stk z=rg_stk return ]
+0x770   [ mem_write= 0 x=rg_stk y=rg_stk return ]
+        [ mem_write= 1 x=rg_stk y=rg_stk return ]
+        [ mem_write= 2 x=rg_stk y=rg_stk return ]
+        [ mem_write= 3 x=rg_stk y=rg_stk return ]
+        [ mem_write= 4 x=rg_stk y=rg_stk return ]
+        [ mem_write= 5 x=rg_stk y=rg_stk return ]
+        [ mem_write= 6 x=rg_stk y=rg_stk return ]
+        [ mem_write= 7 x=rg_stk y=rg_stk return ]
+        [ mem_write= 8 x=rg_stk y=rg_stk return ]
+        [ mem_write= 9 x=rg_stk y=rg_stk return ]
+        [ mem_write=10 x=rg_stk y=rg_stk return ]
+        [ mem_write=11 x=rg_stk y=rg_stk return ]
+        [ mem_write=12 x=rg_stk y=rg_stk return ]
+        [ mem_write=13 x=rg_stk y=rg_stk return ]
+        [ mem_write=14 x=rg_stk y=rg_stk return ]
+        [ mem_write=15 x=rg_stk y=rg_stk return ]
+0x780   [ return ]
+QUIT:   [ goto=console ]
+        [ x=rg_m z=rg_stk return ]
+        [ x=rg_stk z=rg_m goto=SETM ]
+        [ x=rg_stk z=1 goto=trap ]
+        [ x=rg_stk z=5 goto=TRA ]
+        [ x=rg_stk z=1 goto=TR ]
+        [ goto=IDLE ]
+        [ x=rg_stk alu=alu_add y=rg_stk z=rg_stk return ]
+        [ x=rg_stk alu=alu_sub y=rg_stk z=rg_stk return ]
+        [ x=rg_stk z=2 flag=flag_p goto=MUL ]
+        [ x=rg_stk z=3 goto=DIV ]
+        [ x_const=0 alu=alu_sub y=rg_stk z=rg_stk ]
+        [ x=rg_stk z=2 flag=flag_z goto=SHR ]
+        [ x=rg_stk alu=alu_rol_xy y=rg_stk z=rg_stk return ]
+        [ x=rg_stk alu=alu_ror_xy y=rg_stk z=rg_stk return ]
+0x790   [ goto=IO0 ]
+        [ goto=IO1 ]
+        [ goto=IO2 ]
+        [ sio_write y=rg_stk return ]
+        [ goto=trap-7 ]
+        [ x=rg_stk z=3 goto=RCMP ]
+        [ x=rg_stk z=3 goto=WMV ]
+        [ goto=trap-7 ]
+        [ goto=FADD ]
+        [ goto=FSUB ]
+        [ goto=FMUL ]
+        [ goto=FDIV ]
+        [ goto=FCMP ]
+        [ goto=FABS ]
+        [ goto=FNEG ]
+        [ goto=FFCT ]
+0x7a0   [ x=rg_stk alu=alu_lss y=rg_stk z=rg_stk return ]
+        [ x=rg_stk alu=alu_leq y=rg_stk z=rg_stk return ]
+        [ x=rg_stk alu=alu_gtr y=rg_stk z=rg_stk return ]
+        [ x=rg_stk alu=alu_geq y=rg_stk z=rg_stk return ]
+        [ x=rg_stk alu=alu_equ y=rg_stk z=rg_stk return ]
+        [ x=rg_stk alu=alu_neq y=rg_stk z=rg_stk return ]
+        [ x=rg_stk z=1 flag=flag_p goto=ABS ]
+        [ x_const=0 alu=alu_sub y=rg_stk z=rg_stk return ]
+        [ x=rg_stk alu=alu_or y=rg_stk z=rg_stk return ]
+        [ x=rg_stk alu=alu_and y=rg_stk z=rg_stk return ]
+        [ x=rg_stk alu=alu_xor y=rg_stk z=rg_stk return ]
+        [ x=rg_stk alu=alu_bic y=rg_stk z=rg_stk return ]
+        [ x=rg_stk z=3 goto=IN ]
+        [ x=rg_stk z=2 goto=BIT ]
+        [ x=rg_stk alu=alu_equ y_const=0 z=rg_stk return ]
+        [ x=rg_stk z=3 goto=MOD ]
+0x7b0   [ x=rg_s alu=alu_sub y=rg_stk z=rg_s return ]
+        [ x=rg_stk return ]
+        [ goto=LODFV ]
+        [ goto=save_stack ]
+        [ goto=STOFV ]
+        [ x_copt z=rg_stk return ]
+        [ goto=CPCOP ]
+        [ goto=PCOP ]
+        [ goto=trap-7 ]
+        [ goto=trap-7 ]
+        [ goto=ENTC ]
+        [ goto=XIT ]
+        [ alu=alu_y_xb0 y_imm8 z=1 goto=ADDPC ]
+        [ x=rg_stk z=rg_pc goto=return-jump ]
+        [ x=rg_stk flag=flag_not_z z=rg_stk goto=ORJMP ]
+        [ x=rg_stk flag=flag_z z=rg_stk goto=ORJMP ]
+0x7c0   [ x=rg_stk z=3 goto=MOVE ]
+        [ x=rg_stk z=1 goto=CHKNIL ]
+        [ alu=alu_y_xb0 y_imm8 z=2 goto=LSTA ]
+        [ x=rg_stk z=2 goto=COMP ]
+        [ goto=GB ]
+        [ mem_read=0 x=rg_l z=rg_stk return ]
+        [ x=rg_stk z=3 goto=CHK ]
+        [ x=rg_stk z=2 goto=CHKZ ]
+        [ x=rg_stk z=1 goto=ALLOC ]
+        [ x=rg_s alu=alu_add y_imm8 z=rg_s goto=ret ]
+        [ mem_read=2 x=rg_l z=1 goto=RTN ]
+        [ return ]
+        [ goto=CX ]
+        [ goto=CI ]
+        [ goto=CF ]
+        [ x=rg_f alu=alu_add y_imm8 z=1 goto=cl_n ]
+0x7d0   [ x_imm4 alu=alu_add y=rg_f z=1 goto=cl_n ]
+        [ x_imm4 alu=alu_add y=rg_f z=1 goto=cl_n ]
+        [ x_imm4 alu=alu_add y=rg_f z=1 goto=cl_n ]
+        [ x_imm4 alu=alu_add y=rg_f z=1 goto=cl_n ]
+        [ x_imm4 alu=alu_add y=rg_f z=1 goto=cl_n ]
+        [ x_imm4 alu=alu_add y=rg_f z=1 goto=cl_n ]
+        [ x_imm4 alu=alu_add y=rg_f z=1 goto=cl_n ]
+        [ x_imm4 alu=alu_add y=rg_f z=1 goto=cl_n ]
+        [ x_imm4 alu=alu_add y=rg_f z=1 goto=cl_n ]
+        [ x_imm4 alu=alu_add y=rg_f z=1 goto=cl_n ]
+        [ x_imm4 alu=alu_add y=rg_f z=1 goto=cl_n ]
+        [ x_imm4 alu=alu_add y=rg_f z=1 goto=cl_n ]
+        [ x_imm4 alu=alu_add y=rg_f z=1 goto=cl_n ]
+        [ x_imm4 alu=alu_add y=rg_f z=1 goto=cl_n ]
+        [ x_imm4 alu=alu_add y=rg_f z=1 goto=cl_n ]
+        [ x_imm4 alu=alu_add y=rg_f z=1 goto=cl_n ]
+0x7e0   [ x=rg_stk z=2 goto=INCL ]
+        [ x=rg_stk z=2 goto=EXCL ]
+        [ x=rg_stk z=3 goto=INL ]
+        [ x=rg_stk z=3 goto=QUOT ]
+        [ x=rg_stk z=1 goto=INC1 ]
+        [ x=rg_stk z=1 goto=DEC1 ]
+        [ x=rg_stk z=2 goto=INC ]
+        [ x=rg_stk z=2 goto=DEC ]
+        [ goto=STOT ]
+        [ goto=LODT ]
+        [ x=rg_stk alu=alu_mul0 y=rg_stk z=1 goto=LXA ]
+        [ alu=alu_y y_imm8 z=1 goto=LPC ]
+        [ goto=trap-7 ]
+        [ goto=trap-7 ]
+        [ goto=trap-7 ]
+        [ x=rg_stk z=2 goto=PDX ]
+0x7f0   [ x=rg_stk alu=alu_y y=rg_stk z=rg_stk goto=SWAP ]
+        [ x=rg_l alu=alu_sub y_imm8 z=1 goto=LPA ]
+        [ x=rg_l alu=alu_sub y_imm8 z=1 goto=LPW ]
+        [ x=rg_l alu=alu_sub y_imm8 z=1 goto=SPW ]
+        [ x=rg_stk z=2 goto=SSWU ]
+        [ x=rg_stk z=3 goto=RCHK ]
+        [ x=rg_stk z=2 goto=RCHZ ]
+        [ alu=alu_y y_imm8 z=2 goto=CM ]
+        [ goto=trap-7 ]
+        [ goto=trap-7 ]
+        [ x=rg_p z=rg_stk return ]
+        [ goto=trap-7 ]
+        [ goto=SYS ]
+        [ goto=trap-7 ]
+        [ x=rg_stk z=1 goto=DOT ]
+        [ goto=trap-49 ]
+
+        
+        

@@ -1,0 +1,1 @@
+cpp $1.c -o $1.ip_code $1.i $1.aa_asm $1.alnk $1.o

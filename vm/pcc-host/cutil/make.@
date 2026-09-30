@@ -1,0 +1,5 @@
+ c     asc.c microl.c comp.c cvt.c da.c dmake.c dump.c gr.c
+ c     mkcmp.c mtime.c show.c
+ clink asc.c microl.c comp.c cvt.c da.c dmake.c dump.c gr.c
+ clink mkcmp.c mtime.c show.c
+&rm -ql *.a *.i *.o

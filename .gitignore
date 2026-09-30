@@ -1,0 +1,57 @@
+# --- C interpreter build output ---
+/vm/int/build/*
+/vm/int/build-release/*
+/vm/int/bin/*
+
+# --- Gowin EDA build artifacts (regenerable from source) ---
+**/impl/
+*.gprj.user
+*.fs.bak
+
+# --- Flash programming images (regenerable: bitstream + disk payload) ---
+vm/vhdl/tang_nano_kronos/flash_complete.bin
+*_complete.bin
+
+# --- GHDL simulation artifacts (regenerable) ---
+**/work/
+*.cf
+*.o
+*.ghw
+*.vcd
+work-obj*.cf
+
+# --- Large regenerable simulation log dumps ---
+vm/vhdl/tang_nano_kronos/sim/sim_*.txt
+vm/vhdl/tang_nano_kronos/sim/*_output*.txt
+vm/vhdl/tang_nano_kronos/sim/uart_*.txt
+vm/vhdl/tang_nano_kronos/boot_rom_aggregate.txt
+
+# --- Stray editor / scratch output ---
+/out.txt
+/out (copy 1).txt
+
+# --- scratch: disk images, deployed Kronos binaries, console dumps (regenerable) ---
+/*.dsk
+/boot.img
+/card.img
+vm/vhdl/onechipbook_kronos/card.img
+/*.cod
+/*.@
+/kmm
+/kmm.c
+/mmverify.c
+/sercmd_last.bin
+**/__pycache__/
+
+# --- Kronos3vm release-ZIP PDF manuals (large; their .doc source is in excelsior/src/doc) ---
+/doc/*.pdf
+
+# --- machine-specific editor config ---
+.vscode/
+
+# --- pcc C toolchain: transient compiler logs + cpp intermediates (regen via build.sh) ---
+vm/pcc-host/**/*.err
+vm/pcc-host/**/*.pccerr
+vm/pcc-host/**/*.asmerr
+vm/pcc-host/**/*.cpperr
+vm/pcc-host/**/*.i

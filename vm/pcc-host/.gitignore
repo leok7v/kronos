@@ -1,0 +1,39 @@
+# --- vm/pcc-host: regenerable build products ---
+# The real toolchain source lives here (doasm/ docpp/ dopcc/ crts/ include/
+# m2/ bridge/ cutil/) and, pristine, in excelsior/src/users/misc/pcc.
+# build.sh rebuilds the host tools; rt/build_native.sh rebuilds the native
+# .cod from the excelsior sources. Everything below is regenerable.
+
+# host tool binaries built by build.sh (platform-specific ELF)
+/bin/asm
+/bin/c
+/bin/clink
+/bin/cpp
+/bin/libr
+/bin/pcc
+
+# Kronos-target build products (assembly, objects, executables, libraries)
+*.a
+*.o
+*.i
+*.cod
+*.lib
+
+# captured stdout/stderr from build stages
+*.e
+*.ae
+*.pe
+*.cpe
+*.pccerr
+*.asmerr
+*.out
+
+# ...but keep the shipped toolchain deliverables under ktool/
+!ktool/bin/*.cod
+!ktool/bin.orig/*.cod
+!ktool/lib/*.lib
+
+# pass-source copies rebuilt from excelsior/src by rt/build_native.sh
+/rt/a_asm.c
+/rt/cpy.c
+/rt/p_*.c

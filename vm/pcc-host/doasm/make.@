@@ -1,0 +1,15 @@
+$echo on
+ c asm.c asm1.c asm2.c
+ clink asm -h 50 -b 5
+
+ c clink.c
+ clink -h 50 clink
+
+ c libr.c
+ clink libr
+
+ c c.c
+ clink c
+
+&rm -ql *.a *.o -ql
+ cp -mq *.cod ../bin/

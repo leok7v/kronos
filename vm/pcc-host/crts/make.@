@@ -1,0 +1,16 @@
+$echo on
+ c env.c
+ c c_run.c
+ c setjmp.c
+ c cmath.c
+ c matherr.c
+ c clib.c
+ clink -o clib -l c_run env
+ clink setjmp
+ clink -o cmath clib c_run matherr
+ clink -o matherr c_run
+&rm -ql *.a
+ libr clib.o c_run.o env.o setjmp.o cmath.o matherr.o -o clib
+&rm -ql *.o -ql
+ cp -mq *.cod    ../bin/
+ cp -mq clib.lib ../
